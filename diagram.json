@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "author": "The Bin - Hack Club",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-pi-pico-w", "id": "pico", "top": 102.35, "left": 368.35, "attrs": {} },
+    { "type": "SSD1306 ", "id": "SSD1306 -0", "top": 215, "left": 0, "attrs": {} },
+    {
+      "type": "wokwi-lcd1602",
+      "id": "wokwi-lcd1602-0",
+      "top": 137.83,
+      "left": 534.4,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-analog-joystick",
+      "id": "wokwi-analog-joystick-0",
+      "top": 306.6,
+      "left": 562.2,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "bz1",
+      "top": -55.2,
+      "left": 683.4,
+      "attrs": { "volume": "0.1" }
+    },
+    {
+      "type": "board-grove-oled-sh1107",
+      "id": "oled2",
+      "top": -48.23,
+      "left": 195.1,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+  [ "pico:GP0", "$serialMonitor:RX", "", [] ],
+  [ "pico:GP1", "$serialMonitor:TX", "", [] ],
+  [ "wokwi-tm1637-7segment-0:CLK", "pico:GP2", "green", [ "h0" ] ],
+  [ "wokwi-tm1637-7segment-0:DIO", "pico:GP3", "green", [ "h0" ] ],
+  [ "wokwi-tm1637-7segment-0:VCC", "pico:3V3", "red", [ "h0" ] ],
+  [ "wokwi-tm1637-7segment-0:GND", "pico:GND.1", "black", [ "h0" ] ],
+  [ "oled2:VCC", "pico:3V3", "red", [ "h0" ] ],
+  [ "oled2:GND", "pico:GND", "black", [ "h0" ] ],
+  [ "oled2:SCL", "pico:GP5", "green", [ "h0" ] ],
+  [ "oled2:SDA", "pico:GP4", "blue", [ "h0" ] ],
+  [ "wokwi-lcd1602-0:VCC", "pico:3V3", "red", [ "h0" ] ],
+  [ "wokwi-lcd1602-0:GND", "pico:GND", "black", [ "h0" ] ],
+  [ "wokwi-lcd1602-0:SCL", "pico:GP9", "green", [ "h0" ] ],
+  [ "wokwi-lcd1602-0:SDA", "pico:GP8", "blue", [ "h0" ] ],
+  [ "wokwi-analog-joystick-0:VCC", "pico:3V3", "red", [ "h0" ] ],
+  [ "wokwi-analog-joystick-0:GND", "pico:GND", "black", [ "h0" ] ],
+  [ "wokwi-analog-joystick-0:VRx", "pico:GP26", "orange", [ "h0" ] ],
+  [ "wokwi-analog-joystick-0:VRy", "pico:GP27", "yellow", [ "h0" ] ],
+  [ "wokwi-analog-joystick-0:SW", "pico:GP28", "purple", [ "h0" ] ],
+  [ "bz1:VCC", "pico:3V3", "red", [ "h0" ] ],
+  [ "bz1:GND", "pico:GND", "black", [ "h0" ] ],
+  [ "bz1:Signal", "pico:GP22", "brown", [ "h0" ] ]
+]
+,
+  "dependencies": {}
+}
