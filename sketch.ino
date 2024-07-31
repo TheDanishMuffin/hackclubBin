@@ -17,23 +17,20 @@ const int threshold = 200;
 
 #define GRID_SIZE 4
 #define MAX_SNAKE_LENGTH 128
-
 int snakeX[MAX_SNAKE_LENGTH];
 int snakeY[MAX_SNAKE_LENGTH];
 int snakeLength = 5;
 int foodX, foodY;
 int direction = 3;
-int score = 0;
 
 void setup() {
   Serial1.begin(115200);
   Serial1.println("Hello, Raspberry Pi Pico W!");
 
-  if (!display.begin(SSD1306_I2C_ADDRESS, OLED_RESET)) {
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial1.println(F("SSD1306 allocation failed"));
     for (;;);
   }
-
   display.display();
   delay(2000);
   display.clearDisplay();
@@ -44,9 +41,13 @@ void setup() {
   pinMode(joystickHorz, INPUT);
   pinMode(joystickSel, INPUT_PULLUP);
 
-  initializeSnake();
+  for (int i = 0; i < snakeLength; i++) {
+    snakeX[i] = snakeLength - i - 1;
+    snakeY[i] = 0;
+  }
+
   generateFood();
-  displayWelcomeMessage();
+  printWelcomeMessage();
 }
 
 void loop() {
@@ -74,19 +75,11 @@ void loop() {
     if (snakeLength < MAX_SNAKE_LENGTH) {
       snakeLength++;
     }
-    score++;
     generateFood();
   }
 
   displayGame();
   delay(100);
-}
-
-void initializeSnake() {
-  for (int i = 0; i < snakeLength; i++) {
-    snakeX[i] = snakeLength - i - 1;
-    snakeY[i] = 0;
-  }
 }
 
 void updateSnake() {
@@ -105,10 +98,6 @@ void updateSnake() {
     snakeX[0]++;
   }
 
-  wrapAround();
-}
-
-void wrapAround() {
   if (snakeX[0] < 0) snakeX[0] = SCREEN_WIDTH / GRID_SIZE - 1;
   if (snakeX[0] >= SCREEN_WIDTH / GRID_SIZE) snakeX[0] = 0;
   if (snakeY[0] < 0) snakeY[0] = SCREEN_HEIGHT / GRID_SIZE - 1;
@@ -127,14 +116,12 @@ bool checkCollision() {
 void gameOver() {
   display.clearDisplay();
   display.setCursor(0, 0);
-  display.setTextSize(2);
   display.print("Game Over");
-  display.setTextSize(1);
-  display.setCursor(0, 30);
-  display.print("Score: ");
-  display.print(score);
   display.display();
-  while (true);
+  delay(2000);
+  display.clearDisplay();
+  display.display();
+  restartGame();
 }
 
 void generateFood() {
@@ -155,30 +142,75 @@ void generateFood() {
 void displayGame() {
   display.clearDisplay();
   display.fillRect(foodX * GRID_SIZE, foodY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
-
   for (int i = 0; i < snakeLength; i++) {
     display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
-
-  display.setCursor(0, 0);
-  display.print("Score: ");
-  display.print(score);
-
   display.display();
 }
 
-void displayWelcomeMessage() {
+void changeSpeed(int newSpeed) {
+  delay(newSpeed);
+}
+
+void printWelcomeMessage() {
   display.clearDisplay();
   display.setCursor(0, 0);
-  display.setTextSize(2);
-  display.print("Snake Game");
-  display.setTextSize(1);
-  display.setCursor(0, 30);
-  display.print("Use joystick to");
-  display.setCursor(0, 40);
-  display.print("move the snake.");
-  display.setCursor(0, 50);
-  display.print("Press to start.");
+  display.print("Welcome to Snake Game!");
   display.display();
-  delay(3000);
+  delay(2000);
+  display.clearDisplay();
+  display.display();
+}
+
+void restartGame() {
+  snakeLength = 5;
+  direction = 3;
+  for (int i = 0; i < snakeLength; i++) {
+    snakeX[i] = snakeLength - i - 1;
+    snakeY[i] = 0;
+  }
+  generateFood();
+}
+
+void increaseDifficulty() {
+  int score = (snakeLength - 5) * 10;
+  if (score > 50 && score <= 100) {
+    changeSpeed(80);
+  } else if (score > 100 && score <= 150) {
+    changeSpeed(60);
+  } else if (score > 150) {
+    changeSpeed(40);
+  }
+}
+
+void displayScore() {
+  display.setCursor(0, 0);
+  display.print("Score: ");
+  display.print((snakeLength - 5) * 10);
+  display.display();
+}
+
+void displayHighScore() {
+  static int highScore = 0;
+  int currentScore = (snakeLength - 5) * 10;
+  if (currentScore > highScore) {
+    highScore = currentScore;
+  }
+  display.setCursor(0, 10);
+  display.print("High Score: ");
+  display.print(highScore);
+  display.display();
+}
+
+void displayGameOverMessage() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("Game Over!");
+  display.setCursor(0, 10);
+  display.print("Final Score: ");
+  display.print((snakeLength - 5) * 10);
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+  display.display();
 }
