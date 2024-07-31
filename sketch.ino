@@ -233,24 +233,6 @@ void pauseGame() {
   display.display();
 }
 
-void checkJoystickCalibration() {
-  int vert = analogRead(joystickVert);
-  int horz = analogRead(joystickHorz);
-  Serial1.print("Vertical: ");
-  Serial1.print(vert);
-  Serial1.print(" Horizontal: ");
-  Serial1.println(horz);
-  delay(1000);
-}
-
-void adjustGameSettings() {
-  Serial1.println("Adjusting game settings...");
-  int newSpeed = 100;
-  changeGameSpeed(newSpeed);
-  Serial1.print("New Speed: ");
-  Serial1.println(newSpeed);
-}
-
 void drawBorder() {
   display.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
 }
@@ -289,17 +271,36 @@ void gameLoop() {
   }
 }
 
-void debugMessage(String message) {
-  Serial1.println(message);
-}
-
 void resetHighScore() {
   highScore = 0;
-  Serial1.println("High score reset to 0");
 }
 
 void printGameOverMessage() {
   display.clearDisplay();
   display.setCursor(0, 0);
   display.print("Game Over");
-  display.setCursor(
+  display.setCursor(0, 10);
+  display.print("Your final score:");
+  display.setCursor(0, 20);
+  display.print(score);
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+  display.display();
+}
+
+void showHighScore() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("High Score: ");
+  display.print(highScore);
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+  display.display();
+}
+
+void displayPauseMessage() {
+  display.setCursor(0, 30);
+  display.print("Paused");
+  display.display();
