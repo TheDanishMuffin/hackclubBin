@@ -304,3 +304,6 @@ void displayPauseMessage() {
   display.setCursor(0, 30);
   display.print("Paused");
   display.display();
+}
+
+void printHighScore
