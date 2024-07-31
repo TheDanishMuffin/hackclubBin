@@ -21,7 +21,8 @@ int snakeX[MAX_SNAKE_LENGTH];
 int snakeY[MAX_SNAKE_LENGTH];
 int snakeLength = 5;
 int foodX, foodY;
-int direction = 3;
+int direction = 3;  
+int score = 0;  
 
 void setup() {
   Serial1.begin(115200);
@@ -42,11 +43,13 @@ void setup() {
   pinMode(joystickSel, INPUT_PULLUP);
 
   for (int i = 0; i < snakeLength; i++) {
-    snakeX[i] = snakeLength - i - 1; 
+    snakeX[i] = snakeLength - i - 1;
     snakeY[i] = 0;                   
   }
 
   generateFood();
+
+  displayWelcomeMessage();
 }
 
 void loop() {
@@ -57,7 +60,7 @@ void loop() {
   if (vert > center + threshold && direction != 1) {
     direction = 0; 
   } else if (vert < center - threshold && direction != 0) {
-    direction = 1;  
+    direction = 1; 
   } else if (horz > center + threshold && direction != 2) {
     direction = 3;  
   } else if (horz < center - threshold && direction != 3) {
@@ -74,9 +77,10 @@ void loop() {
     if (snakeLength < MAX_SNAKE_LENGTH) {
       snakeLength++;
     }
+    score++;  
     generateFood();
   }
-  
+
   displayGame();
 
   delay(100); 
@@ -116,9 +120,14 @@ bool checkCollision() {
 void gameOver() {
   display.clearDisplay();
   display.setCursor(0, 0);
+  display.setTextSize(2); 
   display.print("Game Over");
+  display.setTextSize(1);
+  display.setCursor(0, 30);
+  display.print("Score: ");
+  display.print(score);  
   display.display();
-  while (true); 
+  while (true);  
 }
 
 void generateFood() {
@@ -145,5 +154,25 @@ void displayGame() {
     display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
 
+  display.setCursor(0, 0);
+  display.print("Score: ");
+  display.print(score);
+
   display.display();
+}
+
+void displayWelcomeMessage() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.setTextSize(2);
+  display.print("Snake Game");
+  display.setTextSize(1);
+  display.setCursor(0, 30);
+  display.print("Use joystick to");
+  display.setCursor(0, 40);
+  display.print("move the snake.");
+  display.setCursor(0, 50);
+  display.print("Press to start.");
+  display.display();
+  delay(3000); ==
 }
