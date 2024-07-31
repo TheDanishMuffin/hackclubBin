@@ -12,17 +12,18 @@ const int joystickVert = 26;
 const int joystickHorz = 27;
 const int joystickSel = 28;
 
-const int center = 511; 
-const int threshold = 200; 
+const int center = 511;
+const int threshold = 200;
 
 #define GRID_SIZE 4
 #define MAX_SNAKE_LENGTH 128
+
 int snakeX[MAX_SNAKE_LENGTH];
 int snakeY[MAX_SNAKE_LENGTH];
 int snakeLength = 5;
 int foodX, foodY;
-int direction = 3;  
-int score = 0;  
+int direction = 3;
+int score = 0;
 
 void setup() {
   Serial1.begin(115200);
@@ -32,6 +33,7 @@ void setup() {
     Serial1.println(F("SSD1306 allocation failed"));
     for (;;);
   }
+
   display.display();
   delay(2000);
   display.clearDisplay();
@@ -42,13 +44,8 @@ void setup() {
   pinMode(joystickHorz, INPUT);
   pinMode(joystickSel, INPUT_PULLUP);
 
-  for (int i = 0; i < snakeLength; i++) {
-    snakeX[i] = snakeLength - i - 1;
-    snakeY[i] = 0;                   
-  }
-
+  initializeSnake();
   generateFood();
-
   displayWelcomeMessage();
 }
 
@@ -58,13 +55,13 @@ void loop() {
   int sel = digitalRead(joystickSel);
 
   if (vert > center + threshold && direction != 1) {
-    direction = 0; 
+    direction = 0;
   } else if (vert < center - threshold && direction != 0) {
-    direction = 1; 
+    direction = 1;
   } else if (horz > center + threshold && direction != 2) {
-    direction = 3;  
+    direction = 3;
   } else if (horz < center - threshold && direction != 3) {
-    direction = 2;  
+    direction = 2;
   }
 
   updateSnake();
@@ -77,13 +74,19 @@ void loop() {
     if (snakeLength < MAX_SNAKE_LENGTH) {
       snakeLength++;
     }
-    score++;  
+    score++;
     generateFood();
   }
 
   displayGame();
+  delay(100);
+}
 
-  delay(100); 
+void initializeSnake() {
+  for (int i = 0; i < snakeLength; i++) {
+    snakeX[i] = snakeLength - i - 1;
+    snakeY[i] = 0;
+  }
 }
 
 void updateSnake() {
@@ -102,6 +105,10 @@ void updateSnake() {
     snakeX[0]++;
   }
 
+  wrapAround();
+}
+
+void wrapAround() {
   if (snakeX[0] < 0) snakeX[0] = SCREEN_WIDTH / GRID_SIZE - 1;
   if (snakeX[0] >= SCREEN_WIDTH / GRID_SIZE) snakeX[0] = 0;
   if (snakeY[0] < 0) snakeY[0] = SCREEN_HEIGHT / GRID_SIZE - 1;
@@ -120,14 +127,14 @@ bool checkCollision() {
 void gameOver() {
   display.clearDisplay();
   display.setCursor(0, 0);
-  display.setTextSize(2); 
+  display.setTextSize(2);
   display.print("Game Over");
   display.setTextSize(1);
   display.setCursor(0, 30);
   display.print("Score: ");
-  display.print(score);  
+  display.print(score);
   display.display();
-  while (true);  
+  while (true);
 }
 
 void generateFood() {
@@ -147,7 +154,6 @@ void generateFood() {
 
 void displayGame() {
   display.clearDisplay();
-
   display.fillRect(foodX * GRID_SIZE, foodY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
 
   for (int i = 0; i < snakeLength; i++) {
@@ -174,5 +180,5 @@ void displayWelcomeMessage() {
   display.setCursor(0, 50);
   display.print("Press to start.");
   display.display();
-  delay(3000); ==
+  delay(3000);
 }
