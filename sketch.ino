@@ -4,7 +4,7 @@
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
-#define OLED_RESET    -1
+#define OLED_RESET -1
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
@@ -27,6 +27,7 @@ unsigned long lastMoveTime = 0;
 const unsigned long moveInterval = 100;
 int score = 0;
 int highScore = 0;
+bool isPaused = false;
 
 void setup() {
   Serial1.begin(115200);
@@ -57,7 +58,7 @@ void setup() {
 
 void loop() {
   unsigned long currentTime = millis();
-  if (currentTime - lastMoveTime > moveInterval) {
+  if (currentTime - lastMoveTime > moveInterval && !isPaused) {
     lastMoveTime = currentTime;
     int vert = analogRead(joystickVert);
     int horz = analogRead(joystickHorz);
@@ -71,6 +72,11 @@ void loop() {
       direction = 3;
     } else if (horz < center - threshold && direction != 3) {
       direction = 2;
+    }
+
+    if (sel == LOW) {
+      isPaused = !isPaused;
+      delay(300); // debounce
     }
 
     updateSnake();
@@ -194,11 +200,23 @@ void displayScore() {
   display.display();
 }
 
-void increaseDifficulty() {
-  int difficultyLevel = score / 50;
-  unsigned long newMoveInterval = 100 - (difficultyLevel * 10);
+void changeGameSpeed(int newSpeed) {
+  unsigned long newMoveInterval = newSpeed;
   if (newMoveInterval < 20) {
     newMoveInterval = 20;
   }
-  delay(newMoveInterval);
+  moveInterval = newMoveInterval;
+}
+
+void increaseDifficulty() {
+  int difficultyLevel = score / 50;
+  changeGameSpeed(100 - (difficultyLevel * 10));
+}
+
+void pauseGame() {
+  if (isPaused) {
+    display.setCursor(0, 20);
+    display.print("Game Paused");
+    display.display();
+  }
 }
