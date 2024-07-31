@@ -101,7 +101,7 @@ void loop() {
 
         displayGame();
       } else {
-        pauseGame();
+        displayPauseMessage();
       }
     }
   }
@@ -171,12 +171,34 @@ void generateFood() {
 
 void displayGame() {
   display.clearDisplay();
-  display.fillRect(foodX * GRID_SIZE, foodY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+  drawFood(foodX, foodY);
   for (int i = 0; i < snakeLength; i++) {
-    display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+    drawSnakeSegment(snakeX[i], snakeY[i]);
   }
-  displayScore();
+  drawBorder();
+  updateScoreDisplay();
   display.display();
+}
+
+void drawSnakeSegment(int x, int y) {
+  display.fillRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+}
+
+void drawFood(int x, int y) {
+  display.fillRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+}
+
+void drawBorder() {
+  display.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
+}
+
+void updateScoreDisplay() {
+  display.setCursor(0, 0);
+  display.print("Score: ");
+  display.print(score);
+  display.setCursor(SCREEN_WIDTH - 60, 0);
+  display.print("High Score: ");
+  display.print(highScore);
 }
 
 void printWelcomeMessage() {
@@ -190,7 +212,6 @@ void printWelcomeMessage() {
   display.display();
   delay(2000);
   display.clearDisplay();
-  display.display();
 }
 
 void restartGame() {
@@ -205,13 +226,9 @@ void restartGame() {
   generateFood();
 }
 
-void displayScore() {
-  display.setCursor(0, 0);
-  display.print("Score: ");
-  display.print(score);
-  display.setCursor(0, 10);
-  display.print("High Score: ");
-  display.print(highScore);
+void increaseDifficulty() {
+  int difficultyLevel = score / 50;
+  changeGameSpeed(150 - (difficultyLevel * 10));
 }
 
 void changeGameSpeed(int newSpeed) {
@@ -222,57 +239,20 @@ void changeGameSpeed(int newSpeed) {
   moveInterval = newMoveInterval;
 }
 
-void increaseDifficulty() {
-  int difficultyLevel = score / 50;
-  changeGameSpeed(150 - (difficultyLevel * 10));
-}
-
-void pauseGame() {
+void displayPauseMessage() {
   display.setCursor(0, 30);
   display.print("Game Paused");
   display.display();
 }
 
-void drawBorder() {
-  display.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
-}
-
-void updateScoreDisplay() {
-  display.setCursor(0, SCREEN_HEIGHT - 10);
-  display.print("Score: ");
-  display.print(score);
-  display.setCursor(SCREEN_WIDTH - 60, SCREEN_HEIGHT - 10);
+void displayHighScore() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
   display.print("High Score: ");
   display.print(highScore);
-}
-
-void clearScreen() {
+  display.display();
+  delay(2000);
   display.clearDisplay();
-}
-
-void drawSnakeSegment(int x, int y) {
-  display.fillRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
-}
-
-void drawFood(int x, int y) {
-  display.fillRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
-}
-
-void drawGameElements() {
-  drawFood(foodX, foodY);
-  for (int i = 0; i < snakeLength; i++) {
-    drawSnakeSegment(snakeX[i], snakeY[i]);
-  }
-}
-
-void gameLoop() {
-  while (true) {
-    loop();
-  }
-}
-
-void resetHighScore() {
-  highScore = 0;
 }
 
 void printGameOverMessage() {
@@ -286,30 +266,25 @@ void printGameOverMessage() {
   display.display();
   delay(2000);
   display.clearDisplay();
-  display.display();
 }
 
-void showHighScore() {
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.print("High Score: ");
-  display.print(highScore);
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-  display.display();
+void resetHighScore() {
+  highScore = 0;
 }
 
-void displayPauseMessage() {
-  display.setCursor(0, 30);
-  display.print("Paused");
-  display.display();
+void gameLoop() {
+  while (true) {
+    loop();
+  }
 }
 
-void printHighScore() {
+void clearScreen() {
   display.clearDisplay();
-  display.setCursor(0, 0);
-  display.print("High Score: ");
-  display.print(highScore);
-  display.display();
+}
+
+void drawGameElements() {
+  drawFood(foodX, foodY);
+  for (int i = 0; i < snakeLength; i++) {
+    drawSnakeSegment(snakeX[i], snakeY[i]);
+  }
 }
