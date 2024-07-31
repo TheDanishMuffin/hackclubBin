@@ -23,6 +23,11 @@ int snakeLength = 5;
 int foodX, foodY;
 int direction = 3;
 
+unsigned long lastMoveTime = 0;
+const unsigned long moveInterval = 100;
+int score = 0;
+int highScore = 0;
+
 void setup() {
   Serial1.begin(115200);
   Serial1.println("Hello, Raspberry Pi Pico W!");
@@ -51,35 +56,41 @@ void setup() {
 }
 
 void loop() {
-  int vert = analogRead(joystickVert);
-  int horz = analogRead(joystickHorz);
-  int sel = digitalRead(joystickSel);
+  unsigned long currentTime = millis();
+  if (currentTime - lastMoveTime > moveInterval) {
+    lastMoveTime = currentTime;
+    int vert = analogRead(joystickVert);
+    int horz = analogRead(joystickHorz);
+    int sel = digitalRead(joystickSel);
 
-  if (vert > center + threshold && direction != 1) {
-    direction = 0;
-  } else if (vert < center - threshold && direction != 0) {
-    direction = 1;
-  } else if (horz > center + threshold && direction != 2) {
-    direction = 3;
-  } else if (horz < center - threshold && direction != 3) {
-    direction = 2;
-  }
-
-  updateSnake();
-
-  if (checkCollision()) {
-    gameOver();
-  }
-
-  if (snakeX[0] == foodX && snakeY[0] == foodY) {
-    if (snakeLength < MAX_SNAKE_LENGTH) {
-      snakeLength++;
+    if (vert > center + threshold && direction != 1) {
+      direction = 0;
+    } else if (vert < center - threshold && direction != 0) {
+      direction = 1;
+    } else if (horz > center + threshold && direction != 2) {
+      direction = 3;
+    } else if (horz < center - threshold && direction != 3) {
+      direction = 2;
     }
-    generateFood();
-  }
 
-  displayGame();
-  delay(100);
+    updateSnake();
+    if (checkCollision()) {
+      gameOver();
+    }
+
+    if (snakeX[0] == foodX && snakeY[0] == foodY) {
+      if (snakeLength < MAX_SNAKE_LENGTH) {
+        snakeLength++;
+      }
+      generateFood();
+      score += 10;
+      if (score > highScore) {
+        highScore = score;
+      }
+    }
+
+    displayGame();
+  }
 }
 
 void updateSnake() {
@@ -117,8 +128,11 @@ void gameOver() {
   display.clearDisplay();
   display.setCursor(0, 0);
   display.print("Game Over");
+  display.setCursor(0, 10);
+  display.print("Score: ");
+  display.print(score);
   display.display();
-  delay(2000);
+  delay(3000);
   display.clearDisplay();
   display.display();
   restartGame();
@@ -145,17 +159,14 @@ void displayGame() {
   for (int i = 0; i < snakeLength; i++) {
     display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
+  displayScore();
   display.display();
-}
-
-void changeSpeed(int newSpeed) {
-  delay(newSpeed);
 }
 
 void printWelcomeMessage() {
   display.clearDisplay();
   display.setCursor(0, 0);
-  display.print("Welcome to Snake Game!");
+  display.print("Welcome to Snake!");
   display.display();
   delay(2000);
   display.clearDisplay();
@@ -165,6 +176,7 @@ void printWelcomeMessage() {
 void restartGame() {
   snakeLength = 5;
   direction = 3;
+  score = 0;
   for (int i = 0; i < snakeLength; i++) {
     snakeX[i] = snakeLength - i - 1;
     snakeY[i] = 0;
@@ -172,45 +184,21 @@ void restartGame() {
   generateFood();
 }
 
-void increaseDifficulty() {
-  int score = (snakeLength - 5) * 10;
-  if (score > 50 && score <= 100) {
-    changeSpeed(80);
-  } else if (score > 100 && score <= 150) {
-    changeSpeed(60);
-  } else if (score > 150) {
-    changeSpeed(40);
-  }
-}
-
 void displayScore() {
   display.setCursor(0, 0);
   display.print("Score: ");
-  display.print((snakeLength - 5) * 10);
-  display.display();
-}
-
-void displayHighScore() {
-  static int highScore = 0;
-  int currentScore = (snakeLength - 5) * 10;
-  if (currentScore > highScore) {
-    highScore = currentScore;
-  }
+  display.print(score);
   display.setCursor(0, 10);
   display.print("High Score: ");
   display.print(highScore);
   display.display();
 }
 
-void displayGameOverMessage() {
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.print("Game Over!");
-  display.setCursor(0, 10);
-  display.print("Final Score: ");
-  display.print((snakeLength - 5) * 10);
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-  display.display();
+void increaseDifficulty() {
+  int difficultyLevel = score / 50;
+  unsigned long newMoveInterval = 100 - (difficultyLevel * 10);
+  if (newMoveInterval < 20) {
+    newMoveInterval = 20;
+  }
+  delay(newMoveInterval);
 }
