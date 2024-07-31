@@ -24,7 +24,7 @@ int foodX, foodY;
 int direction = 3;
 
 unsigned long lastMoveTime = 0;
-const unsigned long moveInterval = 150;
+unsigned long moveInterval = 150;
 int score = 0;
 int highScore = 0;
 bool isPaused = false;
@@ -306,4 +306,10 @@ void displayPauseMessage() {
   display.display();
 }
 
-void printHighScore
+void printHighScore() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("High Score: ");
+  display.print(highScore);
+  display.display();
+}
