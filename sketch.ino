@@ -29,7 +29,6 @@ int score = 0;
 int highScore = 0;
 bool isPaused = false;
 bool gameOverFlag = false;
-bool soundEnabled = true;
 
 void setup() {
   Serial1.begin(115200);
@@ -150,9 +149,6 @@ void gameOver() {
   display.setCursor(0, 20);
   display.print("High Score: ");
   display.print(highScore);
-  if (soundEnabled) {
-    tone(1, 1000, 500); // Play a tone
-  }
   display.display();
   delay(3000);
   restartGame();
@@ -237,20 +233,6 @@ void pauseGame() {
   display.display();
 }
 
-void soundOn() {
-  soundEnabled = true;
-}
-
-void soundOff() {
-  soundEnabled = false;
-}
-
-void playSound(int frequency, int duration) {
-  if (soundEnabled) {
-    tone(1, frequency, duration);
-  }
-}
-
 void checkJoystickCalibration() {
   int vert = analogRead(joystickVert);
   int horz = analogRead(joystickHorz);
@@ -301,4 +283,23 @@ void drawGameElements() {
   }
 }
 
-void gameLoop
+void gameLoop() {
+  while (true) {
+    loop();
+  }
+}
+
+void debugMessage(String message) {
+  Serial1.println(message);
+}
+
+void resetHighScore() {
+  highScore = 0;
+  Serial1.println("High score reset to 0");
+}
+
+void printGameOverMessage() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("Game Over");
+  display.setCursor(
