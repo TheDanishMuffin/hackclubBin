@@ -252,9 +252,16 @@ void generatePowerUp() {
   powerUpTimer = millis();
 }
 
+void activatePowerUp() {
+  powerUpActive = true;
+  moveInterval = 75; // Speed up snake
+  powerUpTimer = millis();
+}
+
 void handlePowerUp(unsigned long currentTime) {
   if (powerUpActive && (currentTime - powerUpTimer > powerUpDuration)) {
     powerUpActive = false;
+    moveInterval = 150; // Reset speed here, change accordinglyy
   }
 }
 
@@ -267,7 +274,4 @@ void displayGame() {
   for (int i = 0; i < snakeLength; i++) {
     display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
-  for (int i = 0; i < numObstacles; i++) {
-    display.drawRect(obstacleX[i] * GRID_SIZE, obstacleY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
-  }
-  displayScore();
+  for (int i = 0; i < numObstacles;
