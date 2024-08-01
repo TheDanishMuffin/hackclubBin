@@ -24,12 +24,14 @@ int foodX, foodY;
 int direction = 3;
 
 unsigned long lastMoveTime = 0;
-const unsigned long moveInterval = 150;
+unsigned long moveInterval = 150;
 int score = 0;
 int highScore = 0;
 bool isPaused = false;
 bool gameOverFlag = false;
 bool gameStarted = false;
+bool speedBoost = false;
+int speedBoostCount = 0;
 
 void setup() {
   Serial1.begin(115200);
@@ -192,6 +194,10 @@ void displayScore() {
   display.setCursor(0, 10);
   display.print("High Score: ");
   display.print(highScore);
+  if (speedBoost) {
+    display.setCursor(0, 20);
+    display.print("Speed Boost!");
+  }
 }
 
 void increaseDifficulty() {
@@ -215,6 +221,9 @@ void resetGame() {
   gameOverFlag = false;
   isPaused = false;
   gameStarted = false;
+  speedBoost = false;
+  speedBoostCount = 0;
+  moveInterval = 150;
   for (int i = 0; i < snakeLength; i++) {
     snakeX[i] = snakeLength - i - 1;
     snakeY[i] = 0;
@@ -240,4 +249,24 @@ void drawBorder() {
 
 void clearScreen() {
   display.clearDisplay();
+}
+
+void activateSpeedBoost() {
+  speedBoost = true;
+  moveInterval = 75;
+  speedBoostCount = 20;
+}
+
+void deactivateSpeedBoost() {
+  speedBoost = false;
+  moveInterval = 150;
+}
+
+void handleSpeedBoost() {
+  if (speedBoost) {
+    speedBoostCount--;
+    if (speedBoostCount <= 0) {
+      deactivateSpeedBoost();
+    }
+  }
 }
