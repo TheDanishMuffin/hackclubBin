@@ -32,6 +32,8 @@ bool gameOverFlag = false;
 bool gameStarted = false;
 bool speedBoost = false;
 int speedBoostCount = 0;
+int obstacleX[10], obstacleY[10];
+int numObstacles = 5;
 
 void setup() {
   Serial1.begin(115200);
@@ -90,7 +92,7 @@ void loop() {
 
         if (!isPaused) {
           updateSnake();
-          if (checkCollision()) {
+          if (checkCollision() || checkObstacleCollision()) {
             gameOver();
           }
 
@@ -105,6 +107,8 @@ void loop() {
             }
             increaseDifficulty();
           }
+
+          handleSpeedBoost();
 
           displayGame();
         } else {
@@ -146,6 +150,15 @@ bool checkCollision() {
   return false;
 }
 
+bool checkObstacleCollision() {
+  for (int i = 0; i < numObstacles; i++) {
+    if (snakeX[0] == obstacleX[i] && snakeY[0] == obstacleY[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void gameOver() {
   gameOverFlag = true;
   display.clearDisplay();
@@ -174,6 +187,32 @@ void generateFood() {
         break;
       }
     }
+    for (int i = 0; i < numObstacles; i++) {
+      if (obstacleX[i] == foodX && obstacleY[i] == foodY) {
+        validPosition = false;
+        break;
+      }
+    }
+  }
+}
+
+void generateObstacles() {
+  for (int i = 0; i < numObstacles; i++) {
+    bool validPosition = false;
+    while (!validPosition) {
+      validPosition = true;
+      obstacleX[i] = random(0, SCREEN_WIDTH / GRID_SIZE);
+      obstacleY[i] = random(0, SCREEN_HEIGHT / GRID_SIZE);
+      for (int j = 0; j < snakeLength; j++) {
+        if (snakeX[j] == obstacleX[i] && snakeY[j] == obstacleY[i]) {
+          validPosition = false;
+          break;
+        }
+      }
+      if (foodX == obstacleX[i] && foodY == obstacleY[i]) {
+        validPosition = false;
+      }
+    }
   }
 }
 
@@ -182,6 +221,9 @@ void displayGame() {
   display.fillRect(foodX * GRID_SIZE, foodY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   for (int i = 0; i < snakeLength; i++) {
     display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+  }
+  for (int i = 0; i < numObstacles; i++) {
+    display.drawRect(obstacleX[i] * GRID_SIZE, obstacleY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
   displayScore();
   display.display();
@@ -229,6 +271,7 @@ void resetGame() {
     snakeY[i] = 0;
   }
   generateFood();
+  generateObstacles();
   display.clearDisplay();
   display.display();
 }
@@ -243,12 +286,14 @@ void showStartScreen() {
   display.display();
 }
 
-void drawBorder() {
-  display.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
-}
-
-void clearScreen() {
-  display.clearDisplay();
+void handleSpeedBoost() {
+  if (speedBoost) {
+    speedBoostCount--;
+    if (speedBoostCount <= 0) {
+      speedBoost = false;
+      moveInterval = 150;
+    }
+  }
 }
 
 void activateSpeedBoost() {
@@ -262,11 +307,10 @@ void deactivateSpeedBoost() {
   moveInterval = 150;
 }
 
-void handleSpeedBoost() {
-  if (speedBoost) {
-    speedBoostCount--;
-    if (speedBoostCount <= 0) {
-      deactivateSpeedBoost();
-    }
-  }
+void clearScreen() {
+  display.clearDisplay();
+}
+
+void drawBorder() {
+  display.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
 }
