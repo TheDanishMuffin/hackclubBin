@@ -30,14 +30,12 @@ int highScore = 0;
 bool isPaused = false;
 bool gameOverFlag = false;
 bool gameStarted = false;
-bool speedBoost = false;
-int speedBoostCount = 0;
 int obstacleX[10], obstacleY[10];
 int numObstacles = 5;
-int powerUpX, powerUpY;
-bool powerUpActive = false;
-unsigned long powerUpTimer = 0;
-unsigned long powerUpDuration = 10000; // 10 seconds
+int scoreMultiplier = 1;
+int consecutiveFood = 0;
+unsigned long multiplierResetTimer = 0;
+unsigned long multiplierResetDuration = 5000; // 5 seconds
 
 void setup() {
   Serial1.begin(115200);
@@ -105,20 +103,19 @@ void loop() {
               snakeLength++;
             }
             generateFood();
-            score += 10;
+            score += 10 * scoreMultiplier;
+            consecutiveFood++;
             if (score > highScore) {
               highScore = score;
             }
             increaseDifficulty();
+            multiplierResetTimer = millis();
+          } else {
+            if (millis() - multiplierResetTimer > multiplierResetDuration) {
+              scoreMultiplier = 1;
+              consecutiveFood = 0;
+            }
           }
-
-          if (snakeX[0] == powerUpX && snakeY[0] == powerUpY) {
-            activatePowerUp();
-            generatePowerUp();
-          }
-
-          handleSpeedBoost();
-          handlePowerUp(currentTime);
 
           displayGame();
         } else {
@@ -180,6 +177,9 @@ void gameOver() {
   display.setCursor(0, 20);
   display.print("High Score: ");
   display.print(highScore);
+  display.setCursor(0, 30);
+  display.print("Multiplier: ");
+  display.print(scoreMultiplier);
   display.display();
   delay(3000);
   resetGame();
@@ -226,52 +226,52 @@ void generateObstacles() {
   }
 }
 
-void generatePowerUp() {
-  powerUpActive = true;
-  bool validPosition = false;
-  while (!validPosition) {
-    validPosition = true;
-    powerUpX = random(0, SCREEN_WIDTH / GRID_SIZE);
-    powerUpY = random(0, SCREEN_HEIGHT / GRID_SIZE);
-    if (powerUpX == foodX && powerUpY == foodY) {
-      validPosition = false;
-    }
-    for (int i = 0; i < snakeLength; i++) {
-      if (snakeX[i] == powerUpX && snakeY[i] == powerUpY) {
-        validPosition = false;
-        break;
-      }
-    }
-    for (int i = 0; i < numObstacles; i++) {
-      if (obstacleX[i] == powerUpX && obstacleY[i] == powerUpY) {
-        validPosition = false;
-        break;
-      }
-    }
-  }
-  powerUpTimer = millis();
-}
-
-void activatePowerUp() {
-  powerUpActive = true;
-  moveInterval = 75; // Speed up snake
-  powerUpTimer = millis();
-}
-
-void handlePowerUp(unsigned long currentTime) {
-  if (powerUpActive && (currentTime - powerUpTimer > powerUpDuration)) {
-    powerUpActive = false;
-    moveInterval = 150; // Reset speed here, change accordinglyy
-  }
-}
-
 void displayGame() {
   display.clearDisplay();
   display.fillRect(foodX * GRID_SIZE, foodY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
-  if (powerUpActive) {
-    display.fillRect(powerUpX * GRID_SIZE, powerUpY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
-  }
+
   for (int i = 0; i < snakeLength; i++) {
     display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
-  for (int i = 0; i < numObstacles;
+  for (int i = 0; i < numObstacles; i++) {
+    display.drawRect(obstacleX[i] * GRID_SIZE, obstacleY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+  }
+
+  display.setCursor(0, 0);
+  display.print("Score: ");
+  display.print(score);
+  display.setCursor(0, 10);
+  display.print("High Score: ");
+  display.print(highScore);
+  display.setCursor(0, 20);
+  display.print("Multiplier: ");
+  display.print(scoreMultiplier);
+  display.display();
+}
+
+void pauseGame() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("Paused");
+  display.display();
+}
+
+void resetGame() {
+  snakeLength = 5;
+  score = 0;
+  scoreMultiplier = 1;
+  consecutiveFood = 0;
+  generateFood();
+  generateObstacles();
+  gameOverFlag = false;
+  isPaused = false;
+  gameStarted = false;
+  displayGame();
+}
+
+void showStartScreen() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("Snake Game");
+  display.setCursor(0, 10);
+  display.print("Press Button");
