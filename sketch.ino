@@ -275,7 +275,7 @@ void moveObstacles(unsigned long currentTime) {
 void displayGame() {
   display.clearDisplay();
   display.fillRect(foodX * GRID_SIZE, foodY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
-  for (int i = 0; i < snakeLength; i++) {
+  for (int i = 0; i <   snakeLength; i++) {
     display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
   for (int i = 0; i < numObstacles; i++) {
@@ -328,3 +328,61 @@ void increaseDifficulty() {
     }
   }
 }
+
+void generateBonusFood() {
+  bool validPosition = false;
+  while (!validPosition) {
+    validPosition = true;
+    int bonusFoodX = random(0, SCREEN_WIDTH / GRID_SIZE);
+    int bonusFoodY = random(0, SCREEN_HEIGHT / GRID_SIZE);
+    if (bonusFoodX != foodX || bonusFoodY != foodY) {
+      for (int i = 0; i < snakeLength; i++) {
+        if (snakeX[i] == bonusFoodX && snakeY[i] == bonusFoodY) {
+          validPosition = false;
+          break;
+        }
+      }
+      for (int i = 0; i < numObstacles; i++) {
+        if (obstacleX[i] == bonusFoodX && obstacleY[i] == bonusFoodY) {
+          validPosition = false;
+          break;
+        }
+      }
+      if (foodX != bonusFoodX || foodY != bonusFoodY) {
+        displayBonusFood(bonusFoodX, bonusFoodY);
+        delay(5000);
+        display.clearDisplay();
+      }
+    }
+  }
+}
+
+void displayBonusFood(int x, int y) {
+  display.fillRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+}
+
+void moveObstacles(unsigned long currentTime) {
+  if (currentTime - lastObstacleMoveTime > obstacleMoveInterval) {
+    lastObstacleMoveTime = currentTime;
+    int moveDirection = random(0, 4);
+    if (moveDirection == 0 && movingObstacleY > 0) {
+      movingObstacleY--;
+    } else if (moveDirection == 1 && movingObstacleY < SCREEN_HEIGHT / GRID_SIZE - 1) {
+      movingObstacleY++;
+    } else if (moveDirection == 2 && movingObstacleX > 0) {
+      movingObstacleX--;
+    } else if (moveDirection == 3 && movingObstacleX < SCREEN_WIDTH / GRID_SIZE - 1) {
+      movingObstacleX++;
+    }
+  }
+}
+
+void checkBonusFoodCollision() {
+  int bonusFoodX = random(0, SCREEN_WIDTH / GRID_SIZE);
+  int bonusFoodY = random(0, SCREEN_HEIGHT / GRID_SIZE);
+  if (snakeX[0] == bonusFoodX && snakeY[0] == bonusFoodY) {
+    score += 50;
+    generateBonusFood();
+  }
+}
+
