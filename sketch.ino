@@ -34,7 +34,7 @@ int obstacleX[10], obstacleY[10];
 int numObstacles = 5;
 int movingObstacleX, movingObstacleY;
 unsigned long lastObstacleMoveTime = 0;
-unsigned long obstacleMoveInterval = 1000; // 1 second
+unsigned long obstacleMoveInterval = 1000;
 
 void setup() {
   Serial1.begin(115200);
@@ -72,43 +72,15 @@ void loop() {
           delay(500);
         }
       } else {
-        int vert = analogRead(joystickVert);
-        int horz = analogRead(joystickHorz);
-        int sel = digitalRead(joystickSel);
-
-        if (vert > center + threshold && direction != 1) {
-          direction = 0;
-        } else if (vert < center - threshold && direction != 0) {
-          direction = 1;
-        } else if (horz > center + threshold && direction != 2) {
-          direction = 3;
-        } else if (horz < center - threshold && direction != 3) {
-          direction = 2;
-        }
-
-        if (sel == LOW) {
-          isPaused = !isPaused;
-          delay(300);
-        }
-
+        handleJoystickInput();
         if (!isPaused) {
           updateSnake();
           if (checkCollision() || checkObstacleCollision()) {
             gameOver();
           }
-
           if (snakeX[0] == foodX && snakeY[0] == foodY) {
-            if (snakeLength < MAX_SNAKE_LENGTH) {
-              snakeLength++;
-            }
-            generateFood();
-            score += 10;
-            if (score > highScore) {
-              highScore = score;
-            }
-            increaseDifficulty();
+            handleFoodConsumption();
           }
-
           moveObstacles(currentTime);
           displayGame();
         } else {
@@ -116,6 +88,27 @@ void loop() {
         }
       }
     }
+  }
+}
+
+void handleJoystickInput() {
+  int vert = analogRead(joystickVert);
+  int horz = analogRead(joystickHorz);
+  int sel = digitalRead(joystickSel);
+
+  if (vert > center + threshold && direction != 1) {
+    direction = 0;
+  } else if (vert < center - threshold && direction != 0) {
+    direction = 1;
+  } else if (horz > center + threshold && direction != 2) {
+    direction = 3;
+  } else if (horz < center - threshold && direction != 3) {
+    direction = 2;
+  }
+
+  if (sel == LOW) {
+    isPaused = !isPaused;
+    delay(300);
   }
 }
 
@@ -135,6 +128,10 @@ void updateSnake() {
     snakeX[0]++;
   }
 
+  wrapAroundScreen();
+}
+
+void wrapAroundScreen() {
   if (snakeX[0] < 0) snakeX[0] = SCREEN_WIDTH / GRID_SIZE - 1;
   if (snakeX[0] >= SCREEN_WIDTH / GRID_SIZE) snakeX[0] = 0;
   if (snakeY[0] < 0) snakeY[0] = SCREEN_HEIGHT / GRID_SIZE - 1;
@@ -176,6 +173,18 @@ void gameOver() {
   display.display();
   delay(3000);
   resetGame();
+}
+
+void handleFoodConsumption() {
+  if (snakeLength < MAX_SNAKE_LENGTH) {
+    snakeLength++;
+  }
+  generateFood();
+  score += 10;
+  if (score > highScore) {
+    highScore = score;
+  }
+  increaseDifficulty();
 }
 
 void generateFood() {
@@ -250,7 +259,7 @@ void generateMovingObstacle() {
 void moveObstacles(unsigned long currentTime) {
   if (currentTime - lastObstacleMoveTime > obstacleMoveInterval) {
     lastObstacleMoveTime = currentTime;
-    int moveDirection = random(0, 4); // 0: up, 1: down, 2: left, 3: right
+    int moveDirection = random(0, 4);
     if (moveDirection == 0 && movingObstacleY > 0) {
       movingObstacleY--;
     } else if (moveDirection == 1 && movingObstacleY < SCREEN_HEIGHT / GRID_SIZE - 1) {
@@ -266,16 +275,13 @@ void moveObstacles(unsigned long currentTime) {
 void displayGame() {
   display.clearDisplay();
   display.fillRect(foodX * GRID_SIZE, foodY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
-
   for (int i = 0; i < snakeLength; i++) {
     display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
   for (int i = 0; i < numObstacles; i++) {
     display.drawRect(obstacleX[i] * GRID_SIZE, obstacleY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
-
   display.drawRect(movingObstacleX * GRID_SIZE, movingObstacleY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
-
   display.setCursor(0, 0);
   display.print("Score: ");
   display.print(score);
@@ -310,4 +316,15 @@ void showStartScreen() {
   display.setCursor(0, 10);
   display.print("Press Button");
   display.display();
+}
+
+void increaseDifficulty() {
+  if (score > 0 && score % 50 == 0) {
+    if (moveInterval > 50) {
+      moveInterval -= 10;
+    }
+    if (obstacleMoveInterval > 300) {
+      obstacleMoveInterval -= 100;
+    }
+  }
 }
