@@ -36,6 +36,11 @@ int movingObstacleX, movingObstacleY;
 unsigned long lastObstacleMoveTime = 0;
 unsigned long obstacleMoveInterval = 1000;
 
+int powerUpX, powerUpY;
+bool powerUpActive = false;
+unsigned long lastPowerUpTime = 0;
+unsigned long powerUpDuration = 10000;
+
 void setup() {
   Serial1.begin(115200);
   Serial1.println("Hello, Raspberry Pi Pico W!");
@@ -82,6 +87,13 @@ void loop() {
             handleFoodConsumption();
           }
           moveObstacles(currentTime);
+          if (powerUpActive && currentTime - lastPowerUpTime > powerUpDuration) {
+            powerUpActive = false;
+            increaseDifficulty();
+          }
+          if (snakeX[0] == powerUpX && snakeY[0] == powerUpY) {
+            handlePowerUp();
+          }
           displayGame();
         } else {
           pauseGame();
@@ -185,6 +197,9 @@ void handleFoodConsumption() {
     highScore = score;
   }
   increaseDifficulty();
+  if (random(0, 100) < 10) {
+    generatePowerUp();
+  }
 }
 
 void generateFood() {
@@ -256,6 +271,41 @@ void generateMovingObstacle() {
   }
 }
 
+void generatePowerUp() {
+  bool validPosition = false;
+  while (!validPosition) {
+    validPosition = true;
+    powerUpX = random(0, SCREEN_WIDTH / GRID_SIZE);
+    powerUpY = random(0, SCREEN_HEIGHT / GRID_SIZE);
+    if (powerUpX != foodX || powerUpY != foodY) {
+      for (int i = 0; i < snakeLength; i++) {
+        if (snakeX[i] == powerUpX && snakeY[i] == powerUpY) {
+          validPosition = false;
+          break;
+        }
+      }
+      for (int i = 0; i < numObstacles; i++) {
+        if (obstacleX[i] == powerUpX && obstacleY[i] == powerUpY) {
+          validPosition = false;
+          break;
+        }
+      }
+      if (foodX != powerUpX || foodY != powerUpY) {
+        powerUpActive = true;
+        lastPowerUpTime = millis();
+      }
+    }
+  }
+}
+
+void handlePowerUp() {
+  if (powerUpActive) {
+    score += 50;
+    powerUpActive = false;
+    increaseDifficulty();
+  }
+}
+
 void moveObstacles(unsigned long currentTime) {
   if (currentTime - lastObstacleMoveTime > obstacleMoveInterval) {
     lastObstacleMoveTime = currentTime;
@@ -275,13 +325,16 @@ void moveObstacles(unsigned long currentTime) {
 void displayGame() {
   display.clearDisplay();
   display.fillRect(foodX * GRID_SIZE, foodY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
-  for (int i = 0; i <   snakeLength; i++) {
+  for (int i = 0; i < snakeLength; i++) {
     display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
   for (int i = 0; i < numObstacles; i++) {
     display.drawRect(obstacleX[i] * GRID_SIZE, obstacleY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
   display.drawRect(movingObstacleX * GRID_SIZE, movingObstacleY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+  if (powerUpActive) {
+    display.fillRect(powerUpX * GRID_SIZE, powerUpY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+  }
   display.setCursor(0, 0);
   display.print("Score: ");
   display.print(score);
@@ -303,6 +356,7 @@ void resetGame() {
   score = 0;
   generateFood();
   generateObstacles();
+  powerUpActive = false;
   gameOverFlag = false;
   isPaused = false;
   gameStarted = false;
@@ -328,61 +382,3 @@ void increaseDifficulty() {
     }
   }
 }
-
-void generateBonusFood() {
-  bool validPosition = false;
-  while (!validPosition) {
-    validPosition = true;
-    int bonusFoodX = random(0, SCREEN_WIDTH / GRID_SIZE);
-    int bonusFoodY = random(0, SCREEN_HEIGHT / GRID_SIZE);
-    if (bonusFoodX != foodX || bonusFoodY != foodY) {
-      for (int i = 0; i < snakeLength; i++) {
-        if (snakeX[i] == bonusFoodX && snakeY[i] == bonusFoodY) {
-          validPosition = false;
-          break;
-        }
-      }
-      for (int i = 0; i < numObstacles; i++) {
-        if (obstacleX[i] == bonusFoodX && obstacleY[i] == bonusFoodY) {
-          validPosition = false;
-          break;
-        }
-      }
-      if (foodX != bonusFoodX || foodY != bonusFoodY) {
-        displayBonusFood(bonusFoodX, bonusFoodY);
-        delay(5000);
-        display.clearDisplay();
-      }
-    }
-  }
-}
-
-void displayBonusFood(int x, int y) {
-  display.fillRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
-}
-
-void moveObstacles(unsigned long currentTime) {
-  if (currentTime - lastObstacleMoveTime > obstacleMoveInterval) {
-    lastObstacleMoveTime = currentTime;
-    int moveDirection = random(0, 4);
-    if (moveDirection == 0 && movingObstacleY > 0) {
-      movingObstacleY--;
-    } else if (moveDirection == 1 && movingObstacleY < SCREEN_HEIGHT / GRID_SIZE - 1) {
-      movingObstacleY++;
-    } else if (moveDirection == 2 && movingObstacleX > 0) {
-      movingObstacleX--;
-    } else if (moveDirection == 3 && movingObstacleX < SCREEN_WIDTH / GRID_SIZE - 1) {
-      movingObstacleX++;
-    }
-  }
-}
-
-void checkBonusFoodCollision() {
-  int bonusFoodX = random(0, SCREEN_WIDTH / GRID_SIZE);
-  int bonusFoodY = random(0, SCREEN_HEIGHT / GRID_SIZE);
-  if (snakeX[0] == bonusFoodX && snakeY[0] == bonusFoodY) {
-    score += 50;
-    generateBonusFood();
-  }
-}
-
