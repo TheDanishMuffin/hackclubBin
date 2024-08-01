@@ -34,6 +34,10 @@ bool speedBoost = false;
 int speedBoostCount = 0;
 int obstacleX[10], obstacleY[10];
 int numObstacles = 5;
+int powerUpX, powerUpY;
+bool powerUpActive = false;
+unsigned long powerUpTimer = 0;
+unsigned long powerUpDuration = 10000; // 10 seconds
 
 void setup() {
   Serial1.begin(115200);
@@ -108,7 +112,13 @@ void loop() {
             increaseDifficulty();
           }
 
+          if (snakeX[0] == powerUpX && snakeY[0] == powerUpY) {
+            activatePowerUp();
+            generatePowerUp();
+          }
+
           handleSpeedBoost();
+          handlePowerUp(currentTime);
 
           displayGame();
         } else {
@@ -216,9 +226,44 @@ void generateObstacles() {
   }
 }
 
+void generatePowerUp() {
+  powerUpActive = true;
+  bool validPosition = false;
+  while (!validPosition) {
+    validPosition = true;
+    powerUpX = random(0, SCREEN_WIDTH / GRID_SIZE);
+    powerUpY = random(0, SCREEN_HEIGHT / GRID_SIZE);
+    if (powerUpX == foodX && powerUpY == foodY) {
+      validPosition = false;
+    }
+    for (int i = 0; i < snakeLength; i++) {
+      if (snakeX[i] == powerUpX && snakeY[i] == powerUpY) {
+        validPosition = false;
+        break;
+      }
+    }
+    for (int i = 0; i < numObstacles; i++) {
+      if (obstacleX[i] == powerUpX && obstacleY[i] == powerUpY) {
+        validPosition = false;
+        break;
+      }
+    }
+  }
+  powerUpTimer = millis();
+}
+
+void handlePowerUp(unsigned long currentTime) {
+  if (powerUpActive && (currentTime - powerUpTimer > powerUpDuration)) {
+    powerUpActive = false;
+  }
+}
+
 void displayGame() {
   display.clearDisplay();
   display.fillRect(foodX * GRID_SIZE, foodY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+  if (powerUpActive) {
+    display.fillRect(powerUpX * GRID_SIZE, powerUpY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+  }
   for (int i = 0; i < snakeLength; i++) {
     display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
@@ -226,91 +271,3 @@ void displayGame() {
     display.drawRect(obstacleX[i] * GRID_SIZE, obstacleY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
   displayScore();
-  display.display();
-}
-
-void displayScore() {
-  display.setCursor(0, 0);
-  display.print("Score: ");
-  display.print(score);
-  display.setCursor(0, 10);
-  display.print("High Score: ");
-  display.print(highScore);
-  if (speedBoost) {
-    display.setCursor(0, 20);
-    display.print("Speed Boost!");
-  }
-}
-
-void increaseDifficulty() {
-  int difficultyLevel = score / 50;
-  moveInterval = 150 - (difficultyLevel * 10);
-  if (moveInterval < 50) {
-    moveInterval = 50;
-  }
-}
-
-void pauseGame() {
-  display.setCursor(0, 30);
-  display.print("Game Paused");
-  display.display();
-}
-
-void resetGame() {
-  snakeLength = 5;
-  direction = 3;
-  score = 0;
-  gameOverFlag = false;
-  isPaused = false;
-  gameStarted = false;
-  speedBoost = false;
-  speedBoostCount = 0;
-  moveInterval = 150;
-  for (int i = 0; i < snakeLength; i++) {
-    snakeX[i] = snakeLength - i - 1;
-    snakeY[i] = 0;
-  }
-  generateFood();
-  generateObstacles();
-  display.clearDisplay();
-  display.display();
-}
-
-void showStartScreen() {
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.print("Press button to start");
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-  display.display();
-}
-
-void handleSpeedBoost() {
-  if (speedBoost) {
-    speedBoostCount--;
-    if (speedBoostCount <= 0) {
-      speedBoost = false;
-      moveInterval = 150;
-    }
-  }
-}
-
-void activateSpeedBoost() {
-  speedBoost = true;
-  moveInterval = 75;
-  speedBoostCount = 20;
-}
-
-void deactivateSpeedBoost() {
-  speedBoost = false;
-  moveInterval = 150;
-}
-
-void clearScreen() {
-  display.clearDisplay();
-}
-
-void drawBorder() {
-  display.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
-}
