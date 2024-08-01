@@ -29,6 +29,7 @@ int score = 0;
 int highScore = 0;
 bool isPaused = false;
 bool gameOverFlag = false;
+bool gameStarted = false;
 
 void setup() {
   Serial1.begin(115200);
@@ -48,13 +49,8 @@ void setup() {
   pinMode(joystickHorz, INPUT);
   pinMode(joystickSel, INPUT_PULLUP);
 
-  for (int i = 0; i < snakeLength; i++) {
-    snakeX[i] = snakeLength - i - 1;
-    snakeY[i] = 0;
-  }
-
-  generateFood();
-  printWelcomeMessage();
+  resetGame();
+  showStartScreen();
 }
 
 void loop() {
@@ -62,46 +58,56 @@ void loop() {
     unsigned long currentTime = millis();
     if (currentTime - lastMoveTime > moveInterval && !isPaused) {
       lastMoveTime = currentTime;
-      int vert = analogRead(joystickVert);
-      int horz = analogRead(joystickHorz);
-      int sel = digitalRead(joystickSel);
 
-      if (vert > center + threshold && direction != 1) {
-        direction = 0;
-      } else if (vert < center - threshold && direction != 0) {
-        direction = 1;
-      } else if (horz > center + threshold && direction != 2) {
-        direction = 3;
-      } else if (horz < center - threshold && direction != 3) {
-        direction = 2;
-      }
-
-      if (sel == LOW) {
-        isPaused = !isPaused;
-        delay(300);
-      }
-
-      if (!isPaused) {
-        updateSnake();
-        if (checkCollision()) {
-          gameOver();
+      if (!gameStarted) {
+        if (digitalRead(joystickSel) == LOW) {
+          gameStarted = true;
+          display.clearDisplay();
+          display.display();
+          delay(500);
         }
-
-        if (snakeX[0] == foodX && snakeY[0] == foodY) {
-          if (snakeLength < MAX_SNAKE_LENGTH) {
-            snakeLength++;
-          }
-          generateFood();
-          score += 10;
-          if (score > highScore) {
-            highScore = score;
-          }
-          increaseDifficulty();
-        }
-
-        displayGame();
       } else {
-        pauseGame();
+        int vert = analogRead(joystickVert);
+        int horz = analogRead(joystickHorz);
+        int sel = digitalRead(joystickSel);
+
+        if (vert > center + threshold && direction != 1) {
+          direction = 0;
+        } else if (vert < center - threshold && direction != 0) {
+          direction = 1;
+        } else if (horz > center + threshold && direction != 2) {
+          direction = 3;
+        } else if (horz < center - threshold && direction != 3) {
+          direction = 2;
+        }
+
+        if (sel == LOW) {
+          isPaused = !isPaused;
+          delay(300);
+        }
+
+        if (!isPaused) {
+          updateSnake();
+          if (checkCollision()) {
+            gameOver();
+          }
+
+          if (snakeX[0] == foodX && snakeY[0] == foodY) {
+            if (snakeLength < MAX_SNAKE_LENGTH) {
+              snakeLength++;
+            }
+            generateFood();
+            score += 10;
+            if (score > highScore) {
+              highScore = score;
+            }
+            increaseDifficulty();
+          }
+
+          displayGame();
+        } else {
+          pauseGame();
+        }
       }
     }
   }
@@ -151,7 +157,7 @@ void gameOver() {
   display.print(highScore);
   display.display();
   delay(3000);
-  restartGame();
+  resetGame();
 }
 
 void generateFood() {
@@ -179,32 +185,6 @@ void displayGame() {
   display.display();
 }
 
-void printWelcomeMessage() {
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.print("Welcome to Snake!");
-  display.setCursor(0, 10);
-  display.print("Use joystick to move.");
-  display.setCursor(0, 20);
-  display.print("Press button to pause.");
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-  display.display();
-}
-
-void restartGame() {
-  snakeLength = 5;
-  direction = 3;
-  score = 0;
-  gameOverFlag = false;
-  for (int i = 0; i < snakeLength; i++) {
-    snakeX[i] = snakeLength - i - 1;
-    snakeY[i] = 0;
-  }
-  generateFood();
-}
-
 void displayScore() {
   display.setCursor(0, 0);
   display.print("Score: ");
@@ -228,25 +208,13 @@ void pauseGame() {
   display.display();
 }
 
-void drawBorder() {
-  display.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
-}
-
-void resetHighScore() {
-  highScore = 0;
-}
-
-void displayPauseMessage() {
-  display.setCursor(0, 30);
-  display.print("Paused");
-  display.display();
-}
-
 void resetGame() {
   snakeLength = 5;
   direction = 3;
   score = 0;
   gameOverFlag = false;
+  isPaused = false;
+  gameStarted = false;
   for (int i = 0; i < snakeLength; i++) {
     snakeX[i] = snakeLength - i - 1;
     snakeY[i] = 0;
@@ -266,53 +234,10 @@ void showStartScreen() {
   display.display();
 }
 
-void showPauseScreen() {
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.print("Game Paused");
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-  display.display();
-}
-
-void displayHighScore() {
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.print("High Score: ");
-  display.print(highScore);
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-  display.display();
-}
-
-void resetGameOver() {
-  gameOverFlag = false;
-  snakeLength = 5;
-  direction = 3;
-  score = 0;
-  for (int i = 0; i < snakeLength; i++) {
-    snakeX[i] = snakeLength - i - 1;
-    snakeY[i] = 0;
-  }
-  generateFood();
-  display.clearDisplay();
-  display.display();
-}
-
-void displayStartMessage() {
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.print("Press button to start");
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-  display.display();
+void drawBorder() {
+  display.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
 }
 
 void clearScreen() {
   display.clearDisplay();
 }
-
-void updateScoreDisplay
