@@ -25,6 +25,9 @@ int direction = 3;
 
 int score = 0;
 bool isPaused = false;
+int gameSpeed = 100; // Default game speed here
+const int speedOptions[] = {150, 100, 50}; // slsow, mormal, Fast
+int selectedSpeedIndex = 1; // Default
 
 void setup() {
   Serial1.begin(115200);
@@ -45,6 +48,7 @@ void setup() {
   pinMode(joystickHorz, INPUT);
   pinMode(joystickSel, INPUT_PULLUP);
 
+  selectGameSpeed();
   startGame();
 }
 
@@ -87,7 +91,7 @@ void loop() {
 
     displayGame();
 
-    delay(100);
+    delay(gameSpeed);
   }
 }
 
@@ -135,6 +139,7 @@ void gameOver() {
   while (true) {
     if (digitalRead(joystickSel) == LOW) {
       while (digitalRead(joystickSel) == LOW); // Debounce button press
+      selectGameSpeed();
       startGame();
       break;
     }
@@ -190,4 +195,38 @@ void displayPauseScreen() {
   display.setCursor(0, 10);
   display.print("Press SEL to Resume");
   display.display();
+}
+
+void selectGameSpeed() {
+  while (true) {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print("Select Game Speed:");
+    display.setCursor(0, 10);
+    display.print("1. Slow");
+    display.setCursor(0, 20);
+    display.print("2. Normal");
+    display.setCursor(0, 30);
+    display.print("3. Fast");
+    display.setCursor(0, 40);
+    display.print("Selected: ");
+    display.print(selectedSpeedIndex + 1);
+    display.display();
+
+    int vert = analogRead(joystickVert);
+
+    if (vert > center + threshold) {
+      selectedSpeedIndex = (selectedSpeedIndex + 1) % 3;
+      delay(200); // Debounce delay
+    } else if (vert < center - threshold) {
+      selectedSpeedIndex = (selectedSpeedIndex - 1 + 3) % 3;
+      delay(200); // Debounce delay
+    }
+
+    if (digitalRead(joystickSel) == LOW) {
+      while (digitalRead(joystickSel) == LOW); // Debounce button press
+      gameSpeed = speedOptions[selectedSpeedIndex];
+      break;
+    }
+  }
 }
