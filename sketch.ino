@@ -25,7 +25,7 @@ int direction = 3;
 
 int score = 0;
 bool isPaused = false;
-int gameSpeed = 100; // Default game speed, adjusts for faster
+int gameSpeed = 100; // Default game speed, adjust for faster
 const int speedOptions[] = {150, 100, 50}; // Slow, Normal, Fast settings
 int selectedSpeedIndex = 1; // Default to Normal speed
 
@@ -36,10 +36,9 @@ int growthMultiplier = 1;
 enum ObstacleMode { NO_OBSTACLES, STATIC_OBSTACLES, DYNAMIC_OBSTACLES };
 ObstacleMode selectedObstacleMode = NO_OBSTACLES;
 
-#define MAX_STATIC_OBSTACLES 10
-#define MAX_DYNAMIC_OBSTACLES 5
-int obstacleX[MAX_STATIC_OBSTACLES + MAX_DYNAMIC_OBSTACLES];
-int obstacleY[MAX_STATIC_OBSTACLES + MAX_DYNAMIC_OBSTACLES];
+#define MAX_OBSTACLES 20
+int obstacleX[MAX_OBSTACLES];
+int obstacleY[MAX_OBSTACLES];
 int obstacleCount = 0;
 int dynamicObstacleSpeed = 2;
 
@@ -221,12 +220,7 @@ void generateObstacles() {
     return;
   }
 
-  if (selectedObstacleMode == STATIC_OBSTACLES) {
-    obstacleCount = random(3, MAX_STATIC_OBSTACLES);
-  } else if (selectedObstacleMode == DYNAMIC_OBSTACLES) {
-    obstacleCount = random(1, MAX_DYNAMIC_OBSTACLES);
-  }
-
+  obstacleCount = random(3, MAX_OBSTACLES);
   for (int i = 0; i < obstacleCount; i++) {
     bool validPosition = false;
     while (!validPosition) {
@@ -268,4 +262,20 @@ void displayGame() {
   display.fillRect(foodX * GRID_SIZE, foodY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
 
   for (int i = 0; i < snakeLength; i++) {
-    display.fillRect(snakeX[i] * GRID_SIZE, snakeY
+    display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+  }
+
+  if (selectedObstacleMode != NO_OBSTACLES) {
+    for (int i = 0; i < obstacleCount; i++) {
+      display.fillRect(obstacleX[i] * GRID_SIZE, obstacleY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+    }
+  }
+
+  display.display();
+}
+
+void displayPauseScreen() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("Game Paused");
+  display.setCursor(0,
