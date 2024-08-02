@@ -17,17 +17,24 @@ const int threshold = 200;
 
 #define GRID_SIZE 4
 #define MAX_SNAKE_LENGTH 128
+#define MAX_OBSTACLES 10
+
 int snakeX[MAX_SNAKE_LENGTH];
 int snakeY[MAX_SNAKE_LENGTH];
 int snakeLength = 5;
 int foodX, foodY;
 int direction = 3;
 
+int obstacleX[MAX_OBSTACLES];
+int obstacleY[MAX_OBSTACLES];
+int obstacleCount = 0;
+
 int score = 0;
 bool isPaused = false;
-int gameSpeed = 100; // Default game speed here
-const int speedOptions[] = {150, 100, 50}; // slsow, mormal, Fast
-int selectedSpeedIndex = 1; // Default
+bool useObstacles = false;
+int gameSpeed = 100; // Default game speed (milliseconds between updates)
+const int speedOptions[] = {150, 100, 50}; // Slow, Normal, Fast
+int selectedSpeedIndex = 1; // Default to Normal speed
 
 void setup() {
   Serial1.begin(115200);
@@ -49,6 +56,7 @@ void setup() {
   pinMode(joystickSel, INPUT_PULLUP);
 
   selectGameSpeed();
+  selectObstacles();
   startGame();
 }
 
@@ -122,6 +130,15 @@ bool checkCollision() {
       return true;
     }
   }
+  
+  if (useObstacles) {
+    for (int i = 0; i < obstacleCount; i++) {
+      if (snakeX[0] == obstacleX[i] && snakeY[0] == obstacleY[i]) {
+        return true;
+      }
+    }
+  }
+
   return false;
 }
 
@@ -140,6 +157,7 @@ void gameOver() {
     if (digitalRead(joystickSel) == LOW) {
       while (digitalRead(joystickSel) == LOW); // Debounce button press
       selectGameSpeed();
+      selectObstacles();
       startGame();
       break;
     }
@@ -155,6 +173,10 @@ void startGame() {
   for (int i = 0; i < snakeLength; i++) {
     snakeX[i] = snakeLength - i - 1;
     snakeY[i] = 0;
+  }
+
+  if (useObstacles) {
+    generateObstacles();
   }
 
   generateFood();
@@ -173,6 +195,14 @@ void generateFood() {
         break;
       }
     }
+    if (useObstacles) {
+      for (int i = 0; i < obstacleCount; i++) {
+        if (obstacleX[i] == foodX && obstacleY[i] == foodY) {
+          validPosition = false;
+          break;
+        }
+      }
+    }
   }
 }
 
@@ -183,6 +213,12 @@ void displayGame() {
 
   for (int i = 0; i < snakeLength; i++) {
     display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+  }
+
+  if (useObstacles) {
+    for (int i = 0; i < obstacleCount; i++) {
+      display.fillRect(obstacleX[i] * GRID_SIZE, obstacleY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+    }
   }
 
   display.display();
@@ -227,6 +263,58 @@ void selectGameSpeed() {
       while (digitalRead(joystickSel) == LOW); // Debounce button press
       gameSpeed = speedOptions[selectedSpeedIndex];
       break;
+    }
+  }
+}
+
+void selectObstacles() {
+  while (true) {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print("Enable Obstacles?");
+    display.setCursor(0, 10);
+    display.print("1. Yes");
+    display.setCursor(0, 20);
+    display.print("2. No");
+    display.setCursor(0, 30);
+    display.print("Selected: ");
+    display.print(useObstacles ? "Yes" : "No");
+    display.display();
+
+    int vert = analogRead(joystickVert);
+
+    if (vert > center + threshold) {
+      useObstacles = !useObstacles;
+      delay(200); // Debounce delay
+    } else if (vert < center - threshold) {
+      useObstacles = !useObstacles;
+      delay(200); // Debounce delay
+    }
+
+    if (digitalRead(joystickSel) == LOW) {
+      while (digitalRead(joystickSel) == LOW); // Debounce button press
+      break;
+    }
+  }
+}
+
+void generateObstacles() {
+  obstacleCount = random(1, MAX_OBSTACLES);
+  for (int i = 0; i < obstacleCount; i++) {
+    bool validPosition = false;
+    while (!validPosition) {
+      validPosition = true;
+      obstacleX[i] = random(0, SCREEN_WIDTH / GRID_SIZE);
+      obstacleY[i] = random(0, SCREEN_HEIGHT / GRID_SIZE);
+      for (int j = 0; j < snakeLength; j++) {
+        if (snakeX[j] == obstacleX[i] && snakeY[j] == obstacleY[i]) {
+          validPosition = false;
+          break;
+        }
+      }
+      if (foodX == obstacleX[i] && foodY == obstacleY[i]) {
+        validPosition = false;
+      }
     }
   }
 }
