@@ -43,6 +43,15 @@ int obstacleY[MAX_OBSTACLES];
 int obstacleCount = 0;
 int dynamicObstacleSpeed = 1;
 
+enum PowerUpType { NONE, INVINCIBILITY, SPEED_BOOST, SCORE_MULTIPLIER };
+PowerUpType currentPowerUp = NONE;
+int powerUpX, powerUpY;
+bool powerUpActive = false;
+unsigned long powerUpStartTime = 0;
+const int powerUpDuration = 5000; // 5 seconds
+unsigned long lastPowerUpTime = 0;
+const int powerUpSpawnInterval = 15000; // 15 seconds
+
 void setup() {
   Serial1.begin(115200);
   Serial1.println("Hello, Raspberry Pi Pico W!");
@@ -103,7 +112,9 @@ void loop() {
     }
 
     if (checkCollision()) {
-      gameOver();
+      if (currentPowerUp != INVINCIBILITY) {
+        gameOver();
+      }
     }
 
     if (snakeX[0] == foodX && snakeY[0] == foodY) {
@@ -114,6 +125,18 @@ void loop() {
       }
       score += growthMultiplier;
       generateFood();
+    }
+
+    if (powerUpActive && millis() - powerUpStartTime > powerUpDuration) {
+      deactivatePowerUp();
+    }
+
+    if (!powerUpActive && millis() - lastPowerUpTime > powerUpSpawnInterval) {
+      spawnPowerUp();
+    }
+
+    if (powerUpActive && snakeX[0] == powerUpX && snakeY[0] == powerUpY) {
+      activatePowerUp();
     }
 
     displayGame();
@@ -205,6 +228,8 @@ void startGame() {
   direction = 3;
   score = 0;
   isPaused = false;
+  powerUpActive = false;
+  lastPowerUpTime = millis();
 
   for (int i = 0; i < snakeLength; i++) {
     snakeX[i] = snakeLength - i - 1;
@@ -252,22 +277,14 @@ void generateObstacles() {
       validPosition = true;
       obstacleX[i] = random(0, SCREEN_WIDTH / GRID_SIZE - 1);
       obstacleY[i] = random(0, SCREEN_HEIGHT / GRID_SIZE - 1);
+
       for (int j = 0; j < snakeLength; j++) {
-        if ((snakeX[j] == obstacleX[i] || snakeX[j] == obstacleX[i] + 1) && 
-            (snakeY[j] == obstacleY[i] || snakeY[j] == obstacleY[i] + 1)) {
+        if ((obstacleX[i] == snakeX[j] || obstacleX[i] + 1 == snakeX[j]) && (obstacleY[i] == snakeY[j] || obstacleY[i] + 1 == snakeY[j])) {
           validPosition = false;
           break;
         }
       }
-      for (int j = 0; j < i; j++) {
-        if ((obstacleX[j] == obstacleX[i] || obstacleX[j] == obstacleX[i] + 1) &&
-            (obstacleY[j] == obstacleY[i] || obstacleY[j] == obstacleY[i] + 1)) {
-          validPosition = false;
-          break;
-        }
-      }
-      if ((foodX == obstacleX[i] || foodX == obstacleX[i] + 1) &&
-          (foodY == obstacleY[i] || foodY == obstacleY[i] + 1)) {
+      if ((foodX == obstacleX[i] || foodX == obstacleX[i] + 1) && (foodY == obstacleY[i] || foodY == obstacleY[i] + 1)) {
         validPosition = false;
       }
     }
@@ -298,6 +315,10 @@ void displayGame() {
 
   for (int i = 0; i < obstacleCount; i++) {
     display.fillRect(obstacleX[i] * GRID_SIZE, obstacleY[i] * GRID_SIZE, GRID_SIZE * 2, GRID_SIZE * 2, SSD1306_WHITE);
+  }
+
+  if (powerUpActive) {
+    display.drawCircle(powerUpX * GRID_SIZE + GRID_SIZE / 2, powerUpY * GRID_SIZE + GRID_SIZE / 2, GRID_SIZE / 2, SSD1306_WHITE);
   }
 
   display.display();
@@ -445,4 +466,67 @@ void selectObstacleMode() {
       break;
     }
   }
+}
+
+void spawnPowerUp() {
+  bool validPosition = false;
+  while (!validPosition) {
+    validPosition = true;
+    powerUpX = random(0, SCREEN_WIDTH / GRID_SIZE);
+    powerUpY = random(0, SCREEN_HEIGHT / GRID_SIZE);
+
+    for (int i = 0; i < snakeLength; i++) {
+      if (snakeX[i] == powerUpX && snakeY[i] == powerUpY) {
+        validPosition = false;
+        break;
+      }
+    }
+
+    for (int i = 0; i < obstacleCount; i++) {
+      int ox = obstacleX[i];
+      int oy = obstacleY[i];
+      if ((powerUpX == ox || powerUpX == ox + 1) && (powerUpY == oy || powerUpY == oy + 1)) {
+        validPosition = false;
+        break;
+      }
+    }
+
+    if ((powerUpX == foodX || powerUpX == foodX + 1) && (powerUpY == foodY || powerUpY == foodY + 1)) {
+      validPosition = false;
+    }
+  }
+
+  currentPowerUp = static_cast<PowerUpType>(random(1, 4)); 
+  powerUpActive = true;
+  lastPowerUpTime = millis();
+}
+
+void activatePowerUp() {
+  powerUpStartTime = millis();
+  switch (currentPowerUp) {
+    case INVINCIBILITY:
+      break;
+    case SPEED_BOOST:
+      gameSpeed /= 2;
+      break;
+    case SCORE_MULTIPLIER:
+      score *= 2; 
+      break;
+    default:
+      break;
+  }
+  powerUpActive = false; 
+}
+
+void deactivatePowerUp() {
+  switch (currentPowerUp) {
+    case SPEED_BOOST:
+      gameSpeed *= 2; 
+      break;
+    case SCORE_MULTIPLIER:
+      break;
+    default:
+      break;
+  }
+  currentPowerUp = NONE;
 }
