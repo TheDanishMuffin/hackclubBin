@@ -366,7 +366,7 @@ void selectGameSpeed() {
     }
   }
 
-  delay(1000);
+  delay(1000); 
 }
 
 void selectObstacleMode() {
@@ -408,5 +408,5 @@ void selectObstacleMode() {
     }
   }
 
-  delay(1000); // Delay to show the selected option
+  delay(1000);
 }
