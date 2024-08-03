@@ -15,6 +15,8 @@ const int joystickSel = 28;
 const int center = 511;
 const int threshold = 200;
 
+int highScore = 0;
+
 #define GRID_SIZE 4
 #define MAX_SNAKE_LENGTH 128
 int snakeX[MAX_SNAKE_LENGTH];
@@ -66,6 +68,7 @@ void setup() {
   selectGameSpeed();
   selectObstacleMode();
   startGame();
+  highScore = retrieveHighScore();
 }
 
 void loop() {
@@ -81,7 +84,57 @@ void loop() {
       isPaused = true;
       displayPauseScreen();
     }
+    if (isGameOver()) {
+    if (score > highScore) {
+      highScore = score;
+      saveHighScore(highScore);
+    }
+    displayHighScore();
+    waitForRestart();
   }
+  }
+void waitForRestart() {
+  while (true) {
+    if (digitalRead(joystickSel) == LOW) {
+      while (digitalRead(joystickSel) == LOW);
+      startGame();
+      break;
+    }
+  }
+}
+
+void generateBonusFood() {
+  bool validPosition = false;
+  while (!validPosition) {
+    validPosition = true;
+    bonusFoodX = random(0, SCREEN_WIDTH / GRID_SIZE);
+    bonusFoodY = random(0, SCREEN_HEIGHT / GRID_SIZE);
+    for (int i = 0; i < snakeLength; i++) {
+      if (snakeX[i] == bonusFoodX && snakeY[i] == bonusFoodY) {
+        validPosition = false;
+        break;
+      }
+    }
+    for (int i = 0; i < obstacleCount; i++) {
+      int ox = obstacleX[i];
+      int oy = obstacleY[i];
+      if ((bonusFoodX == ox || bonusFoodX == ox + 1) && (bonusFoodY == oy || bonusFoodY == oy + 1)) {
+        validPosition = false;
+        break;
+      }
+    }
+  }
+  bonusFoodActive = true;
+}
+  void displayHighScore() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("High Score: ");
+  display.print(highScore);
+  display.setCursor(0, 10);
+  display.print("Press SEL to Restart");
+  display.display();
+}
 
   if (!isPaused && !adjustingMultiplier) {
     int vert = analogRead(joystickVert);
