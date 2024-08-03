@@ -30,7 +30,7 @@ int gameSpeed = 100;
 const int speedOptions[] = {150, 100, 50}; 
 int selectedSpeedIndex = 1; 
 
-enum GameMode { NORMAL, GROWTH_MULTIPLIER, TIME_TRIAL };
+enum GameMode { NORMAL, GROWTH_MULTIPLIER };
 GameMode selectedGameMode = NORMAL;
 int growthMultiplier = 1;
 
@@ -42,19 +42,6 @@ int obstacleX[MAX_OBSTACLES];
 int obstacleY[MAX_OBSTACLES];
 int obstacleCount = 0;
 int dynamicObstacleSpeed = 1;
-
-enum PowerUpType { NONE, INVINCIBILITY, SPEED_BOOST, SCORE_MULTIPLIER };
-PowerUpType currentPowerUp = NONE;
-int powerUpX, powerUpY;
-bool powerUpActive = false;
-unsigned long powerUpStartTime = 0;
-const int powerUpDuration = 5000; // 5 seconds
-unsigned long lastPowerUpTime = 0;
-const int powerUpSpawnInterval = 15000; // 15 seconds
-
-unsigned long startTime;
-const int timeLimit = 60000; // 1 minute
-bool timeTrialActive = false;
 
 void setup() {
   Serial1.begin(115200);
@@ -116,9 +103,7 @@ void loop() {
     }
 
     if (checkCollision()) {
-      if (currentPowerUp != INVINCIBILITY) {
-        gameOver();
-      }
+      gameOver();
     }
 
     if (snakeX[0] == foodX && snakeY[0] == foodY) {
@@ -129,25 +114,6 @@ void loop() {
       }
       score += growthMultiplier;
       generateFood();
-    }
-
-    if (powerUpActive && millis() - powerUpStartTime > powerUpDuration) {
-      deactivatePowerUp();
-    }
-
-    if (!powerUpActive && millis() - lastPowerUpTime > powerUpSpawnInterval) {
-      spawnPowerUp();
-    }
-
-    if (powerUpActive && snakeX[0] == powerUpX && snakeY[0] == powerUpY) {
-      activatePowerUp();
-    }
-
-    if (selectedGameMode == TIME_TRIAL) {
-      unsigned long elapsedTime = millis() - startTime;
-      if (elapsedTime >= timeLimit) {
-        gameOver();
-      }
     }
 
     displayGame();
@@ -239,9 +205,6 @@ void startGame() {
   direction = 3;
   score = 0;
   isPaused = false;
-  powerUpActive = false;
-  lastPowerUpTime = millis();
-  startTime = millis(); // Initialize start time for Time Trial mode
 
   for (int i = 0; i < snakeLength; i++) {
     snakeX[i] = snakeLength - i - 1;
@@ -282,7 +245,7 @@ void generateObstacles() {
     return;
   }
 
-  obstacleCount = random(1, MAX_OBSTACLES + 1);
+  obstacleCount = random(1, MAX_OBSTACLES);
   for (int i = 0; i < obstacleCount; i++) {
     bool validPosition = false;
     while (!validPosition) {
@@ -290,15 +253,33 @@ void generateObstacles() {
       obstacleX[i] = random(0, SCREEN_WIDTH / GRID_SIZE - 1);
       obstacleY[i] = random(0, SCREEN_HEIGHT / GRID_SIZE - 1);
       for (int j = 0; j < snakeLength; j++) {
-        if (snakeX[j] == obstacleX[i] && snakeY[j] == obstacleY[i]) {
+        if ((snakeX[j] == obstacleX[i] || snakeX[j] == obstacleX[i] + 1) && 
+            (snakeY[j] == obstacleY[i] || snakeY[j] == obstacleY[i] + 1)) {
           validPosition = false;
           break;
         }
       }
-      if (obstacleX[i] == foodX && obstacleY[i] == foodY) {
-        validPosition = false;
-        break;
+      for (int j = 0; j < i; j++) {
+        if ((obstacleX[j] == obstacleX[i] || obstacleX[j] == obstacleX[i] + 1) &&
+            (obstacleY[j] == obstacleY[i] || obstacleY[j] == obstacleY[i] + 1)) {
+          validPosition = false;
+          break;
+        }
       }
+      if ((foodX == obstacleX[i] || foodX == obstacleX[i] + 1) && 
+          (foodY == obstacleY[i] || foodY == obstacleY[i] + 1)) {
+        validPosition = false;
+      }
+    }
+  }
+}
+
+void updateDynamicObstacles() {
+  for (int i = 0; i < obstacleCount; i++) {
+    if (i % 2 == 0) {
+      obstacleX[i] = (obstacleX[i] + dynamicObstacleSpeed) % (SCREEN_WIDTH / GRID_SIZE);
+    } else {
+      obstacleY[i] = (obstacleY[i] + dynamicObstacleSpeed) % (SCREEN_HEIGHT / GRID_SIZE);
     }
   }
 }
@@ -306,126 +287,218 @@ void generateObstacles() {
 void displayGame() {
   display.clearDisplay();
 
-  display.drawRect(foodX * GRID_SIZE, foodY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
-
-  if (powerUpActive) {
-    display.drawCircle(powerUpX * GRID_SIZE + GRID_SIZE / 2, powerUpY * GRID_SIZE + GRID_SIZE / 2, GRID_SIZE / 2, SSD1306_WHITE);
-  }
+  display.fillRect(foodX * GRID_SIZE, foodY * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
 
   for (int i = 0; i < snakeLength; i++) {
-    display.fillRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
+    display.drawRect(snakeX[i] * GRID_SIZE, snakeY[i] * GRID_SIZE, GRID_SIZE, GRID_SIZE, SSD1306_WHITE);
   }
 
   if (selectedObstacleMode != NO_OBSTACLES) {
     for (int i = 0; i < obstacleCount; i++) {
-      int ox = obstacleX[i];
-      int oy = obstacleY[i];
-      display.fillRect(ox * GRID_SIZE, oy * GRID_SIZE, GRID_SIZE * 2, GRID_SIZE * 2, SSD1306_WHITE);
+      display.fillRect(obstacleX[i] * GRID_SIZE, obstacleY[i] * GRID_SIZE, GRID_SIZE * 2, GRID_SIZE * 2, SSD1306_WHITE);
     }
   }
 
-  if (selectedGameMode == TIME_TRIAL) {
-    unsigned long elapsedTime = millis() - startTime;
-    int remainingTime = (timeLimit - elapsedTime) / 1000;
-    display.setCursor(0, 0);
-    display.print("Time: ");
-    display.print(remainingTime);
+  display.display();
+}
+
+void displayPauseScreen() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("Game Paused");
+  display.setCursor(0, 10);
+  display.print("Press SEL to Resume");
+  display.setCursor(0, 20);
+  display.print("Press SEL to Adjust Growth");
+  display.display();
+}
+
+void displayMultiplierAdjustment() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("Adjust Growth Multiplier:");
+
+  int selectedMultiplier = growthMultiplier;
+  bool adjustmentMade = false;
+  while (!adjustmentMade) {
+    int vert = analogRead(joystickVert);
+    if (vert < center - threshold) {
+      selectedMultiplier = max(1, selectedMultiplier - 1);
+    } else if (vert > center + threshold) {
+      selectedMultiplier = min(10, selectedMultiplier + 1);
+    }
+
     display.setCursor(0, 10);
-    display.print("Score: ");
-    display.print(score);
-  } else {
-    display.setCursor(0, 0);
-    display.print("Score: ");
-    display.print(score);
+    display.print("Multiplier: ");
+    display.print(selectedMultiplier);
+
+    display.display();
+
+    if (digitalRead(joystickSel) == LOW) {
+      while (digitalRead(joystickSel) == LOW); // Debounce button press
+      growthMultiplier = selectedMultiplier;
+      adjustmentMade = true;
+    }
   }
 
-  display.display();
+  delay(1000); 
+  adjustingMultiplier = false;
+  isPaused = true;
+  displayPauseScreen();
 }
 
 void selectGameMode() {
   display.clearDisplay();
   display.setCursor(0, 0);
   display.print("Select Game Mode:");
-  display.setCursor(0, 10);
-  display.print("1: Normal");
-  display.setCursor(0, 20);
-  display.print("2: Growth Multiplier");
-  display.setCursor(0, 30);
-  display.print("3: Time Trial");
-  display.display();
 
-  while (true) {
+  int selectedOption = 0;
+  bool selectionMade = false;
+  while (!selectionMade) {
     int vert = analogRead(joystickVert);
-    if (vert > center + threshold) {
-      selectedGameMode = NORMAL;
-      break;
-    } else if (vert < center - threshold) {
-      selectedGameMode = GROWTH_MULTIPLIER;
-      break;
-    } else if (analogRead(joystickHorz) < center - threshold) {
-      selectedGameMode = TIME_TRIAL;
-      break;
+    if (vert < center - threshold) {
+      selectedOption = 1;
+    } else if (vert > center + threshold) {
+      selectedOption = 2;
+    } else {
+      selectedOption = 0;
+    }
+
+    display.setCursor(0, 10);
+    if (selectedOption == 0) {
+      display.print("> Normal");
+    } else {
+      display.print("  Normal");
+    }
+
+    display.setCursor(0, 20);
+    if (selectedOption == 1) {
+      display.print("> Growth Multiplier");
+    } else {
+      display.print("  Growth Multiplier");
+    }
+
+    display.display();
+
+    if (digitalRead(joystickSel) == LOW) {
+      while (digitalRead(joystickSel) == LOW); // Debounce button press
+      if (selectedOption == 0) {
+        selectedGameMode = NORMAL;
+        growthMultiplier = 1;
+      } else if (selectedOption == 1) {
+        selectedGameMode = GROWTH_MULTIPLIER;
+        growthMultiplier = 2;
+      }
+      selectionMade = true;
     }
   }
 
-  while (analogRead(joystickVert) > center + threshold || analogRead(joystickVert) < center - threshold || analogRead(joystickHorz) < center - threshold);
+  delay(1000);
 }
 
 void selectGameSpeed() {
   display.clearDisplay();
   display.setCursor(0, 0);
   display.print("Select Game Speed:");
-  display.setCursor(0, 10);
-  display.print("1: Slow");
-  display.setCursor(0, 20);
-  display.print("2: Normal");
-  display.setCursor(0, 30);
-  display.print("3: Fast");
-  display.display();
 
-  while (true) {
+  int selectedOption = 1;
+  bool selectionMade = false;
+  while (!selectionMade) {
     int vert = analogRead(joystickVert);
-    if (vert > center + threshold) {
-      selectedSpeedIndex = 0;
-      break;
-    } else if (vert < center - threshold) {
-      selectedSpeedIndex = 2;
-      break;
-    } else if (analogRead(joystickHorz) < center - threshold) {
-      selectedSpeedIndex = 1;
-      break;
+    if (vert < center - threshold) {
+      selectedOption = 0;
+    } else if (vert > center + threshold) {
+      selectedOption = 2;
+    } else {
+      selectedOption = 1;
+    }
+
+    display.setCursor(0, 10);
+    if (selectedOption == 0) {
+      display.print("> Slow");
+    } else {
+      display.print("  Slow");
+    }
+
+    display.setCursor(0, 20);
+    if (selectedOption == 1) {
+      display.print("> Normal");
+    } else {
+      display.print("  Normal");
+    }
+
+    display.setCursor(0, 30);
+    if (selectedOption == 2) {
+      display.print("> Fast");
+    } else {
+      display.print("  Fast");
+    }
+
+    display.display();
+
+    if (digitalRead(joystickSel) == LOW) {
+      while (digitalRead(joystickSel) == LOW); // Debounce button press
+      selectedSpeedIndex = selectedOption;
+      gameSpeed = speedOptions[selectedSpeedIndex];
+      selectionMade = true;
     }
   }
 
-  while (analogRead(joystickVert) > center + threshold || analogRead(joystickVert) < center - threshold || analogRead(joystickHorz) < center - threshold);
-  gameSpeed = speedOptions[selectedSpeedIndex];
+  delay(1000); // Delay to show the selected option
 }
 
 void selectObstacleMode() {
   display.clearDisplay();
   display.setCursor(0, 0);
   display.print("Select Obstacle Mode:");
-  display.setCursor(0, 10);
-  display.print("1: No Obstacles");
-  display.setCursor(0, 20);
-  display.print("2: Static Obstacles");
-  display.setCursor(0, 30);
-  display.print("3: Dynamic Obstacles");
-  display.display();
 
-  while (true) {
+  int selectedOption = 0;
+  bool selectionMade = false;
+  while (!selectionMade) {
     int vert = analogRead(joystickVert);
-    if (vert > center + threshold) {
-      selectedObstacleMode = NO_OBSTACLES;
-      break;
-    } else if (vert < center - threshold) {
-      selectedObstacleMode = STATIC_OBSTACLES;
-      break;
-    } else if (analogRead(joystickHorz) < center - threshold) {
-      selectedObstacleMode = DYNAMIC_OBSTACLES;
-      break;
+    if (vert < center - threshold) {
+      selectedOption = 1;
+    } else if (vert > center + threshold) {
+      selectedOption = 2;
+    } else {
+      selectedOption = 0;
+    }
+
+    display.setCursor(0, 10);
+    if (selectedOption == 0) {
+      display.print("> No Obstacles");
+    } else {
+      display.print("  No Obstacles");
+    }
+
+    display.setCursor(0, 20);
+    if (selectedOption == 1) {
+      display.print("> Static Obstacles");
+    } else {
+      display.print("  Static Obstacles");
+    }
+
+    display.setCursor(0, 30);
+    if (selectedOption == 2) {
+      display.print("> Dynamic Obstacles");
+    } else {
+      display.print("  Dynamic Obstacles");
+    }
+
+    display.display();
+
+    if (digitalRead(joystickSel) == LOW) {
+      while (digitalRead(joystickSel) == LOW); // Debounce button press
+      if (selectedOption == 0) {
+        selectedObstacleMode = NO_OBSTACLES;
+      } else if (selectedOption == 1) {
+        selectedObstacleMode = STATIC_OBSTACLES;
+      } else if (selectedOption == 2) {
+        selectedObstacleMode = DYNAMIC_OBSTACLES;
+      }
+      selectionMade = true;
     }
   }
 
-  while (analogRead(joystickVert) > center + threshold || analogRead(joystickVert) < center - threshold || analogRead(joystickHorz) < center - threshold);
+  delay(1000);
 }
