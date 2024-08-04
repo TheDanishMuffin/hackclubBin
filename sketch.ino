@@ -659,3 +659,64 @@ void selectGameSpeed() {
       selectedOption = 0;
     } else if (vert > center + threshold) {
       selectedOption = 2;
+    } else {
+      selectedOption = 1;
+    }
+
+    display.setCursor(0, 10);
+    if (selectedOption == 0) {
+      display.print("> Slow");
+    } else {
+      display.print("  Slow");
+    }
+
+    display.setCursor(0, 20);
+    if (selectedOption == 1) {
+      display.print("> Normal");
+    } else {
+      display.print("  Normal");
+    }
+
+    display.setCursor(0, 30);
+    if (selectedOption == 2) {
+      display.print("> Fast");
+    } else {
+      display.print("  Fast");
+    }
+
+    display.display();
+
+    if (digitalRead(joystickSel) == LOW) {
+      while (digitalRead(joystickSel) == LOW);
+      selectedSpeedIndex = selectedOption;
+      gameSpeed = speedOptions[selectedSpeedIndex];
+      selectionMade = true;
+    }
+  }
+
+  delay(1000); 
+}
+
+void selectObstacleMode() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("Select Obstacle Mode:");
+
+  int selectedOption = 0;
+  bool selectionMade = false;
+  while (!selectionMade) {
+    int vert = analogRead(joystickVert);
+    if (vert < center - threshold) {
+      selectedOption = 1;
+    } else if (vert > center + threshold) {
+      selectedOption = 2;
+    } else {
+      selectedOption = 0;
+    }
+
+    display.setCursor(0, 10);
+    if (selectedOption == 0) {
+      display.print("> No Obstacles");
+    } else {
+      display.print("  No Obstacles");
+    }
