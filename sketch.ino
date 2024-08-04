@@ -353,6 +353,7 @@ void selectGameMode() {
   display.print("Select Game Mode:");
 
   int selectedOption = 0;
+  int previousOption = -1;
   bool selectionMade = false;
   while (!selectionMade) {
     int vert = analogRead(joystickVert);
@@ -364,19 +365,15 @@ void selectGameMode() {
       selectedOption = 0;
     }
 
-    display.setCursor(0, 10);
-    if (selectedOption == 0) {
-      display.print("> Normal");
-    } else {
-      display.print("  Normal");
+    if (selectedOption != previousOption) {
+      if (previousOption >= 0) {
+        clearCaret(0, 10 + previousOption * 10);
+      }
+      previousOption = selectedOption;
     }
 
-    display.setCursor(0, 20);
-    if (selectedOption == 1) {
-      display.print("> Growth Multiplier");
-    } else {
-      display.print("  Growth Multiplier");
-    }
+    drawOption("Normal", selectedOption == 0, 0, 10);
+    drawOption("Growth Multiplier", selectedOption == 1, 0, 20);
 
     display.display();
 
@@ -395,6 +392,96 @@ void selectGameMode() {
 
   delay(1000);
 }
+
+void selectGameSpeed() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("Select Game Speed:");
+
+  int selectedOption = 1;
+  int previousOption = -1;
+  bool selectionMade = false;
+  while (!selectionMade) {
+    int vert = analogRead(joystickVert);
+    if (vert < center - threshold) {
+      selectedOption = 0;
+    } else if (vert > center + threshold) {
+      selectedOption = 2;
+    } else {
+      selectedOption = 1;
+    }
+
+    if (selectedOption != previousOption) {
+      if (previousOption >= 0) {
+        clearCaret(0, 10 + previousOption * 10);
+      }
+      previousOption = selectedOption;
+    }
+
+    drawOption("Slow", selectedOption == 0, 0, 10);
+    drawOption("Normal", selectedOption == 1, 0, 20);
+    drawOption("Fast", selectedOption == 2, 0, 30);
+
+    display.display();
+
+    if (digitalRead(joystickSel) == LOW) {
+      while (digitalRead(joystickSel) == LOW);
+      selectedSpeedIndex = selectedOption;
+      gameSpeed = speedOptions[selectedSpeedIndex];
+      selectionMade = true;
+    }
+  }
+
+  delay(1000); 
+}
+
+void selectObstacleMode() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("Select Obstacle Mode:");
+
+  int selectedOption = 0;
+  int previousOption = -1;
+  bool selectionMade = false;
+  while (!selectionMade) {
+    int vert = analogRead(joystickVert);
+    if (vert < center - threshold) {
+      selectedOption = 1;
+    } else if (vert > center + threshold) {
+      selectedOption = 2;
+    } else {
+      selectedOption = 0;
+    }
+
+    if (selectedOption != previousOption) {
+      if (previousOption >= 0) {
+        clearCaret(0, 10 + previousOption * 10);
+      }
+      previousOption = selectedOption;
+    }
+
+    drawOption("No Obstacles", selectedOption == 0, 0, 10);
+    drawOption("Static Obstacles", selectedOption == 1, 0, 20);
+    drawOption("Dynamic Obstacles", selectedOption == 2, 0, 30);
+
+    display.display();
+
+    if (digitalRead(joystickSel) == LOW) {
+      while (digitalRead(joystickSel) == LOW); 
+      if (selectedOption == 0) {
+        selectedObstacleMode = NO_OBSTACLES;
+      } else if (selectedOption == 1) {
+        selectedObstacleMode = STATIC_OBSTACLES;
+      } else if (selectedOption == 2) {
+        selectedObstacleMode = DYNAMIC_OBSTACLES;
+      }
+      selectionMade = true;
+    }
+  }
+
+  delay(1000);
+}
+
 
 void selectGameSpeed() {
   display.clearDisplay();
