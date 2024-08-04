@@ -306,6 +306,35 @@ void generateFood() {
   }
 }
 
+void generateBonusFood() {
+  for (int i = 0; i < MAX_BONUS_FOOD; i++) {
+    bool validPosition = false;
+    while (!validPosition) {
+      validPosition = true;
+      bonusFoodX[i] = random(0, SCREEN_WIDTH / GRID_SIZE);
+      bonusFoodY[i] = random(0, SCREEN_HEIGHT / GRID_SIZE);
+      for (int j = 0; j < snakeLength; j++) {
+        if (snakeX[j] == bonusFoodX[i] && snakeY[j] == bonusFoodY[i]) {
+          validPosition = false;
+          break;
+        }
+      }
+      if (bonusFoodX[i] == foodX && bonusFoodY[i] == foodY) {
+        validPosition = false;
+      }
+      for (int j = 0; j < obstacleCount; j++) {
+        if (bonusFoodX[i] == obstacleX[j] && bonusFoodY[i] == obstacleY[j]) {
+          validPosition = false;
+          break;
+        }
+      }
+    }
+    bonusFoodActive[i] = true;
+    bonusFoodStartTime[i] = millis();
+  }
+}
+
+
 void generateObstacles() {
   if (selectedObstacleMode == STATIC_OBSTACLES || selectedObstacleMode == DYNAMIC_OBSTACLES) {
     obstacleCount = random(1, MAX_OBSTACLES + 1);
