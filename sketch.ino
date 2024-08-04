@@ -545,7 +545,7 @@ void displayMultiplierAdjustment() {
     display.print(growthMultiplier);
     display.display();
     if (digitalRead(joystickSel) == LOW) {
-      while (digitalRead(joystickSel) == LOW); // Debounce button press
+      while (digitalRead(joystickSel) == LOW);
       adjustingMultiplier = false;
     }
   }
@@ -561,3 +561,45 @@ void displayPauseScreen() {
   display.print("Press SEL to Resume");
   display.display();
 }
+
+void displayMultiplierAdjustment() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("Adjust Growth Multiplier:");
+
+  int selectedMultiplier = growthMultiplier;
+  bool adjustmentMade = false;
+  while (!adjustmentMade) {
+    int vert = analogRead(joystickVert);
+    if (vert < center - threshold) {
+      selectedMultiplier = max(1, selectedMultiplier - 1);
+    } else if (vert > center + threshold) {
+      selectedMultiplier = min(10, selectedMultiplier + 1);
+    }
+
+    display.setCursor(0, 10);
+    display.print("Multiplier: ");
+    display.print(selectedMultiplier);
+
+    display.display();
+
+    if (digitalRead(joystickSel) == LOW) {
+      while (digitalRead(joystickSel) == LOW); 
+      growthMultiplier = selectedMultiplier;
+      adjustmentMade = true;
+    }
+  }
+
+  delay(1000); 
+  adjustingMultiplier = false;
+  isPaused = true;
+  displayPauseScreen();
+}
+
+void selectGameMode() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("Select Game Mode:");
+
+  int selectedOption = 0;
+  bool selectionMade = false;
